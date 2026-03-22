@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Site Tracker Builder</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a10;
+    --surface: #12121c;
+    --surface2: #1a1a28;
+    --border: #252536;
+    --border-hover: #3a3a52;
+    --text: #e2e2ee;
+    --text-dim: #7a7a96;
+    --text-muted: #4a4a64;
+    --indigo: #7c6aff;
+    --indigo-glow: #7c6aff40;
+    --emerald: #3ddba0;
+    --emerald-glow: #3ddba030;
+    --amber: #f0b842;
+    --amber-glow: #f0b84230;
+    --red: #f06868;
+    --font: 'Outfit', -apple-system, sans-serif;
+    --mono: 'IBM Plex Mono', 'Consolas', monospace;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 56px 24px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, #7c6aff08 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, #3ddba006 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .content { position: relative; z-index: 1; width: 100%; max-width: 760px; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 100px; padding: 7px 16px;
+    font-size: 10px; font-weight: 600; letter-spacing: 1.8px;
+    text-transform: uppercase; color: var(--emerald);
+  }
+  .badge-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--emerald); box-shadow: 0 0 8px var(--emerald-glow);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .header { text-align: center; margin-bottom: 48px; }
+  .header h1 {
+    font-size: 36px; font-weight: 800; letter-spacing: -1px;
+    color: #fff; margin: 20px 0 12px; line-height: 1.1;
+  }
+  .header p {
+    font-size: 15px; color: var(--text-dim); line-height: 1.7;
+    max-width: 480px; margin: 0 auto; font-weight: 400;
+  }
+
+  .upload-grid {
+    display: grid; grid-template-columns: repeat(3,1fr);
+    gap: 14px; margin-bottom: 36px;
+  }
+  @media(max-width:600px){ .upload-grid{grid-template-columns:1fr;} }
+
+  .dropzone {
+    border: 2px dashed var(--border); border-radius: 16px;
+    padding: 32px 16px; min-height: 140px;
+    display: flex; flex-direction: column; justify-content: center;
+    align-items: center; gap: 8px; cursor: pointer;
+    transition: all .25s ease; background: transparent;
+  }
+  .dropzone:hover { border-color: var(--border-hover); background: #ffffff03; }
+  .dropzone.dragover { background: #ffffff06; }
+  .dropzone.has-file { background: #ffffff03; }
+  .dropzone.indigo.dragover,.dropzone.indigo.has-file { border-color: var(--indigo); }
+  .dropzone.emerald.dragover,.dropzone.emerald.has-file { border-color: var(--emerald); }
+  .dropzone.amber.dragover,.dropzone.amber.has-file { border-color: var(--amber); }
+
+  .dz-step { font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); }
+  .dz-label { font-size:15px; font-weight:700; color:var(--text); }
+  .dz-sub { font-size:12px; color:var(--text-muted); text-align:center; max-width:180px; line-height:1.5; }
+  .dz-file-check { font-size:28px; margin-bottom:2px; }
+  .dz-file-name { font-size:12px; font-weight:600; text-align:center; word-break:break-all; padding:0 4px; }
+  .dz-file-meta { font-size:11px; color:var(--text-muted); }
+  .indigo .dz-file-check,.indigo .dz-file-name { color:var(--indigo); }
+  .emerald .dz-file-check,.emerald .dz-file-name { color:var(--emerald); }
+  .amber .dz-file-check,.amber .dz-file-name { color:var(--amber); }
+  .file-input { display:none; }
+
+  .actions { display:flex; gap:12px; justify-content:center; margin-bottom:28px; }
+
+  .btn-build {
+    font-family:var(--font); padding:15px 40px; font-size:14px; font-weight:700;
+    border:none; border-radius:12px; cursor:pointer;
+    background:var(--surface2); color:var(--text-muted);
+    transition:all .3s ease; letter-spacing:.3px;
+  }
+  .btn-build.ready {
+    background:linear-gradient(135deg,#6c5ce7,#7c6aff); color:#fff;
+    box-shadow:0 6px 32px var(--indigo-glow); cursor:pointer;
+  }
+  .btn-build.ready:hover { transform:translateY(-1px); box-shadow:0 8px 40px #7c6aff50; }
+  .btn-build:disabled { cursor:not-allowed; opacity:.5; }
+
+  .btn-reset {
+    font-family:var(--font); padding:15px 24px; font-size:13px; font-weight:600;
+    border:1px solid var(--border); border-radius:12px; cursor:pointer;
+    background:transparent; color:var(--text-dim); transition:all .2s ease;
+  }
+  .btn-reset:hover { border-color:var(--border-hover); color:var(--text); }
+
+  #msg-area { width:100%; max-width:620px; margin:0 auto; }
+
+  .msg {
+    width:100%; border-radius:12px; padding:18px 22px;
+    font-size:13px; line-height:1.7; margin-bottom:12px;
+  }
+  .msg-error { background:#1c0a0a; border:1px solid #3a1515; color:var(--red); }
+  .msg-success { background:#0a1c12; border:1px solid #153a20; color:var(--emerald); }
+
+  .msg .label { font-weight:700; font-size:14px; margin-bottom:6px; }
+
+  .val-report {
+    width:100%; border-radius:12px; padding:20px 22px;
+    font-size:13px; line-height:1.8; margin-bottom:12px;
+    background:var(--surface); border:1px solid var(--border);
+  }
+  .val-report .val-title {
+    font-size:12px; font-weight:700; letter-spacing:1.2px;
+    text-transform:uppercase; margin-bottom:10px; color:var(--text-dim);
+  }
+  .val-item { display:flex; align-items:flex-start; gap:10px; padding:3px 0; }
+  .val-icon { flex-shrink:0; font-size:14px; width:20px; text-align:center; margin-top:2px; }
+  .val-text { flex:1; }
+  .val-text.dim { color:var(--text-muted); }
+  .val-detail {
+    font-family:var(--mono); font-size:11px; color:var(--text-muted);
+    margin-top:2px; padding-left:2px; line-height: 1.8;
+  }
+  .val-cells {
+    font-family:var(--mono); font-size:10px; color:var(--text-muted);
+    margin-top:4px; padding:6px 10px; background:#0a0a14;
+    border-radius:6px; border:1px solid var(--border);
+    max-height:120px; overflow-y:auto; line-height:1.9;
+  }
+  .val-cells .cell-loc { color:var(--amber); }
+  .val-cells .cell-col { color:var(--indigo); }
+  .val-cells .cell-val { color:var(--red); opacity:0.7; }
+  .val-cells .cell-site { color:var(--emerald); }
+
+  .val-section { margin-top:14px; padding-top:12px; border-top:1px solid var(--border); }
+  .val-section-label {
+    font-size:10px; font-weight:700; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;
+  }
+
+  .ref-panel {
+    margin-top:40px; background:var(--surface);
+    border:1px solid var(--border); border-radius:14px; overflow:hidden;
+  }
+  .ref-panel summary {
+    padding:16px 22px; cursor:pointer; font-size:11px; font-weight:700;
+    letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted);
+    transition:color .2s; list-style:none;
+  }
+  .ref-panel summary::-webkit-details-marker{display:none}
+  .ref-panel summary::before{content:'▸ '}
+  .ref-panel[open] summary::before{content:'▾ '}
+  .ref-panel summary:hover{color:var(--text-dim)}
+  .ref-content {
+    padding:0 22px 18px; font-family:var(--mono);
+    font-size:11px; line-height:2; color:var(--text-muted);
+  }
+  .ref-row{display:flex;gap:8px;align-items:baseline}
+  .ref-from{min-width:270px}
+  .ref-arrow{color:var(--text-muted);opacity:.3}
+  .ref-section-title {
+    font-family:var(--font); font-weight:700; font-size:10px;
+    letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted);
+    margin:12px 0 4px; padding-top:10px; border-top:1px solid var(--border);
+  }
+  .c-emerald{color:var(--emerald)} .c-indigo{color:var(--indigo)}
+  .c-amber{color:var(--amber)} .c-red{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="content">
+
+  <div class="header">
+    <div class="badge"><span class="badge-dot"></span>100% client-side · no data leaves your browser</div>
+    <h1>Site Tracker Builder</h1>
+    <p>Upload the three source files below. The tool maps SSU data and monitoring lookups into your template and downloads the completed tracker.</p>
+  </div>
+
+  <div class="upload-grid">
+    <div class="dropzone indigo" id="dz-template" onclick="document.getElementById('fi-template').click()">
+      <input type="file" class="file-input" id="fi-template" accept=".xlsx,.xls,.xlsm">
+      <span class="dz-step">Step 1</span><span class="dz-label">Template</span>
+      <span class="dz-sub">Dashboard template you download weekly</span>
+    </div>
+    <div class="dropzone emerald" id="dz-ssu" onclick="document.getElementById('fi-ssu').click()">
+      <input type="file" class="file-input" id="fi-ssu" accept=".xlsx,.xls,.xlsm">
+      <span class="dz-step">Step 2</span><span class="dz-label">SSU Report</span>
+      <span class="dz-sub">Raw SSU data export from Horizon</span>
+    </div>
+    <div class="dropzone amber" id="dz-monitoring" onclick="document.getElementById('fi-monitoring').click()">
+      <input type="file" class="file-input" id="fi-monitoring" accept=".xlsx,.xls,.xlsm">
+      <span class="dz-step">Step 3</span><span class="dz-label">Monitoring</span>
+      <span class="dz-sub">Site Activation Monitoring for Tier & Feasibility</span>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-build" id="btn-build" disabled>Build & Download Tracker</button>
+    <button class="btn-reset" id="btn-reset" style="display:none">Reset</button>
+  </div>
+
+  <div id="msg-area"></div>
+
+  <details class="ref-panel">
+    <summary>Column mapping reference</summary>
+    <div class="ref-content" id="ref-content"></div>
+  </details>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SSU_TO_TEMPLATE = [
+  { ssu: "Country", tpl: "Country *" },
+  { ssu: "Site No", tpl: "Site # *" },
+  { ssu: "PI Name", tpl: "Principal Investigator *" },
+  { ssu: "Institution", tpl: "Institution Name *" },
+  { ssu: "Site: Horizon Status", tpl: "Status *" },
+  { ssu: "Date Selected", tpl: "Actual Selection Date" },
+  { ssu: "CDP Appr Planned", tpl: "CDP Appr - Planned Date" },
+  { ssu: "CDP Appr Actual", tpl: "CDP Appr - Actual Date" },
+  { ssu: "Contract Planned", tpl: "Contract - Planned Date" },
+  { ssu: "Contract Actual", tpl: "Contract - Actual Date" },
+  { ssu: "First Reg Doc Sent", tpl: "First Reg Doc Sent - Actual Date" },
+  { ssu: "Institution Budget Sent To Site", tpl: "Institution Budget Sent To Site - Actual Date" },
+  { ssu: "Institution Contract Sent To Site", tpl: "Institution Contract Sent To Site - Actual Date" },
+  { ssu: "Site IRB/IEC Submission (Planned)", tpl: "Site IRB/EC Submission - Planned Date" },
+  { ssu: "Site IRB/IEC Submission (Actual)", tpl: "Site IRB/EC Submission - Actual Date" },
+  { ssu: "Site IRB/IEC Approval (Planned)", tpl: "Site IRB/IEC Approval - Planned Date" },
+  { ssu: "Site IRB/IEC Approval (Actual)", tpl: "Site IRB/IEC Approval - Actual Date" },
+  { ssu: "SIV Scheduled", tpl: "SIV - Planned Date" },
+  { ssu: "SIV Actual", tpl: "SIV - Actual Date" },
+  { ssu: "Planned Site Activation Date", tpl: "Projected Activation Date (PAD)" },
+  { ssu: "Actual Site Activation Date", tpl: "Actual Activation Date" },
+];
+
+const SIV_ACTUAL_SSU = "SIV Actual";
+const SIV_DATE_ACTUAL_TPL = "SIV Date Actual";
+const FEASIBILITY_TPL = "Feasibility Estimate (screened per year)";
+const TIER_TPL = "Tier";
+
+const COUNTRY_MAP = {
+  "Czech Republic": "Czechia",
+  "Korea, Republic of": "South Korea",
+  "United Kingdom": "UK",
+  "United States": "USA",
+};
+
+const TEMPLATE_REQUIRED_SHEET = "Sites";
+const MONITORING_REQUIRED_SHEET = "Weekly Report";
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function mapCountry(name) {
+  if (!name) return name;
+  const t = String(name).trim();
+  return COUNTRY_MAP[t] || t;
+}
+
+function cleanStr(val) {
+  if (typeof val !== "string") return val;
+  const cleaned = val.replace(/[\s\u00A0\u3000\u2000-\u200B\uFEFF]+/g, " ").trim();
+  return cleaned || null;
+}
+
+function fmtDate(val) {
+  if (val == null || val === "") return null;
+  if (typeof val === "string") {
+    val = cleanStr(val);
+    if (!val) return null;
+  }
+  if (typeof val === "number") {
+    const d = XLSX.SSF.parse_date_code(val);
+    if (d) return d.y + "-" + String(d.m).padStart(2,"0") + "-" + String(d.d).padStart(2,"0");
+  }
+  if (val instanceof Date && !isNaN(val)) return val.toISOString().slice(0,10);
+  if (typeof val === "string" && val.trim()) return val.trim();
+  return null;
+}
+
+function readFile(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = () => rej(new Error("Failed to read " + file.name));
+    r.readAsArrayBuffer(file);
+  });
+}
+
+// Convert 0-based column index to Excel letter (0=A, 25=Z, 26=AA)
+function colLetter(c) {
+  let s = "";
+  c++;
+  while (c > 0) { c--; s = String.fromCharCode(65 + (c % 26)) + s; c = Math.floor(c / 26); }
+  return s;
+}
+
+// Format an SSU row index (0-based data row) to SSU Excel row number
+// SSU has 1 header row, so data row 0 = Excel row 2
+function ssuExcelRow(dataIdx) { return dataIdx + 2; }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VALIDATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+function validate(tplWb, ssuWb, monWb) {
+  const errors = [];
+  const warnings = [];
+  const info = [];
+
+  // ── 1. Template ───────────────────────────────────────────
+  if (!tplWb.SheetNames.includes(TEMPLATE_REQUIRED_SHEET)) {
+    errors.push({
+      title: "Template is missing the 'Sites' sheet",
+      detail: "Found sheets: " + tplWb.SheetNames.join(", ") + ". Make sure you uploaded the correct template file in slot ①."
+    });
+    return { errors, warnings, info, canProceed: false };
+  }
+
+  const tplWs = tplWb.Sheets[TEMPLATE_REQUIRED_SHEET];
+  const tplRange = XLSX.utils.decode_range(tplWs["!ref"]);
+  const tplHeaders = [];
+  for (let c = tplRange.s.c; c <= tplRange.e.c; c++) {
+    const a = XLSX.utils.encode_cell({r:0,c});
+    tplHeaders.push(tplWs[a] ? String(tplWs[a].v) : "");
+  }
+
+  const tplHdrSet = new Set(tplHeaders.filter(Boolean));
+  const missingTplCols = [];
+  for (const m of SSU_TO_TEMPLATE) {
+    if (!tplHdrSet.has(m.tpl)) missingTplCols.push(m.tpl);
+  }
+  if (!tplHdrSet.has(SIV_DATE_ACTUAL_TPL)) missingTplCols.push(SIV_DATE_ACTUAL_TPL);
+
+  if (missingTplCols.length > 0) {
+    errors.push({
+      title: "Template is missing " + missingTplCols.length + " expected column(s)",
+      detail: missingTplCols.join(", ")
+    });
+  }
+
+  const knownTplCols = new Set(SSU_TO_TEMPLATE.map(m => m.tpl));
+  [SIV_DATE_ACTUAL_TPL, FEASIBILITY_TPL, TIER_TPL, "PA Version", "PA 'Go Live Date'",
+   "First Reg Doc Sent - Planned Date", "Institution Budget Sent To Site - Planned Date",
+   "Institution Contract Sent To Site - Planned Date"].forEach(c => knownTplCols.add(c));
+  const unknownTplCols = tplHeaders.filter(h => h && !knownTplCols.has(h));
+  if (unknownTplCols.length > 0) {
+    warnings.push({
+      title: "Template has " + unknownTplCols.length + " unrecognized column(s) — they will be left empty",
+      detail: unknownTplCols.join(", ")
+    });
+  }
+
+  // ── 2. SSU ────────────────────────────────────────────────
+  const ssuWs = ssuWb.Sheets[ssuWb.SheetNames[0]];
+  const ssuRows = XLSX.utils.sheet_to_json(ssuWs, { defval: null });
+
+  // Build SSU column name → Excel column letter lookup
+  const ssuHeaderRow = XLSX.utils.sheet_to_json(ssuWs, { header: 1, defval: null })[0] || [];
+  const ssuColMap = {};
+  ssuHeaderRow.forEach((h, i) => { if (h) ssuColMap[String(h)] = colLetter(i); });
+
+  if (ssuRows.length === 0) {
+    errors.push({ title: "SSU Report has no data rows", detail: "The file appears to be empty or headers-only." });
+    return { errors, warnings, info, canProceed: false };
+  }
+
+  const ssuKeys = new Set(Object.keys(ssuRows[0]));
+  const missingSSUCols = [];
+  for (const m of SSU_TO_TEMPLATE) {
+    if (!ssuKeys.has(m.ssu)) missingSSUCols.push(m.ssu);
+  }
+  if (!ssuKeys.has(SIV_ACTUAL_SSU)) missingSSUCols.push(SIV_ACTUAL_SSU);
+
+  if (missingSSUCols.length > 0) {
+    errors.push({
+      title: "SSU Report is missing " + missingSSUCols.length + " expected column(s)",
+      detail: missingSSUCols.join(", ") + ". The SSU format may have changed, or the wrong file was uploaded in slot ②."
+    });
+  }
+
+  // Blank site numbers — with row locations
+  const blankSiteRows = [];
+  ssuRows.forEach((r, i) => {
+    if (!r["Site No"] || String(r["Site No"]).trim() === "") {
+      blankSiteRows.push({ row: ssuExcelRow(i), col: ssuColMap["Site No"] || "?" });
+    }
+  });
+  if (blankSiteRows.length > 0) {
+    warnings.push({
+      title: blankSiteRows.length + " SSU row(s) have a blank Site No",
+      detail: "These rows will be written but cannot be matched for Tier/Feasibility.",
+      cells: blankSiteRows.map(r => ({ loc: "SSU " + r.col + r.row, col: "Site No", val: "(empty)" }))
+    });
+  }
+
+  // Duplicate site numbers — with row locations
+  const ssuSiteNos = ssuRows.map(r => String(r["Site No"]||"").trim()).filter(Boolean);
+  const siteNoRows = {};
+  ssuRows.forEach((r, i) => {
+    const sn = String(r["Site No"]||"").trim();
+    if (sn) { if (!siteNoRows[sn]) siteNoRows[sn] = []; siteNoRows[sn].push(ssuExcelRow(i)); }
+  });
+  const dupeEntries = Object.entries(siteNoRows).filter(([,rows]) => rows.length > 1);
+  if (dupeEntries.length > 0) {
+    warnings.push({
+      title: dupeEntries.length + " duplicate Site No(s) found in SSU Report",
+      detail: "Each of these site numbers appears on multiple rows.",
+      cells: dupeEntries.slice(0, 15).map(([sn, rows]) => ({
+        loc: "SSU rows " + rows.join(", "),
+        col: "Site No",
+        val: sn
+      }))
+    });
+  }
+
+  info.push({ title: "SSU Report: " + ssuRows.length + " sites across " + new Set(ssuRows.map(r=>r.Country)).size + " countries" });
+
+  // ── 3. Monitoring ─────────────────────────────────────────
+  if (!monWb.SheetNames.includes(MONITORING_REQUIRED_SHEET)) {
+    errors.push({
+      title: "Monitoring Report is missing the 'Weekly Report' sheet",
+      detail: "Found sheets: " + monWb.SheetNames.join(", ") + ". Make sure you uploaded the correct file in slot ③."
+    });
+    return { errors, warnings, info, canProceed: errors.length === 0 };
+  }
+
+  const monWs = monWb.Sheets[MONITORING_REQUIRED_SHEET];
+  const monRows = XLSX.utils.sheet_to_json(monWs, { defval: null, range: 4 });
+  const monValid = monRows.filter(r => r["Site No"] && String(r["Site No"]).trim());
+
+  if (monValid.length === 0) {
+    errors.push({ title: "Monitoring Report has no data in 'Weekly Report'", detail: "The sheet appears empty or the header row is not at row 5." });
+  }
+
+  if (monValid.length > 0 && !Object.keys(monValid[0]).includes("Tier")) {
+    warnings.push({ title: "Monitoring Report is missing the 'Tier' column", detail: "Tier values will not be populated in the output." });
+  }
+
+  const hasFeasibility = monValid.length > 0 && Object.keys(monValid[0]).some(k => k.toLowerCase().includes("feasibility"));
+  if (!hasFeasibility) {
+    warnings.push({ title: "Monitoring Report has no 'Feasibility' column", detail: "Feasibility Estimate will not be populated. This is expected if the column hasn't been added yet." });
+  }
+
+  info.push({ title: "Monitoring Report: " + monValid.length + " sites loaded" });
+
+  // ── 4. Cross-file ─────────────────────────────────────────
+  const ssuSiteSet = new Set(ssuSiteNos);
+  const monSiteSet = new Set(monValid.map(r => String(r["Site No"]).trim()));
+  const matched = [...ssuSiteSet].filter(s => monSiteSet.has(s));
+  const ssuOnly = [...ssuSiteSet].filter(s => !monSiteSet.has(s));
+  const monOnly = [...monSiteSet].filter(s => !ssuSiteSet.has(s));
+
+  info.push({ title: "Site number match: " + matched.length + " matched, " + ssuOnly.length + " in SSU only, " + monOnly.length + " in Monitoring only" });
+
+  if (matched.length === 0 && ssuSiteSet.size > 0 && monSiteSet.size > 0) {
+    warnings.push({
+      title: "Zero site numbers match between SSU and Monitoring Report",
+      detail: "SSU sample: " + [...ssuSiteSet].slice(0,3).join(", ") + " | Monitoring sample: " + [...monSiteSet].slice(0,3).join(", ") + ". Tier and Feasibility will not be populated. If this is deidentified test data, this is expected."
+    });
+  } else if (ssuOnly.length > 0) {
+    // Find the SSU rows for unmatched sites
+    const unmatchedCells = [];
+    ssuRows.forEach((r, i) => {
+      const sn = String(r["Site No"]||"").trim();
+      if (sn && ssuOnly.includes(sn)) {
+        unmatchedCells.push({ loc: "SSU row " + ssuExcelRow(i), col: "Site No", val: sn });
+      }
+    });
+    warnings.push({
+      title: ssuOnly.length + " SSU site(s) have no match in Monitoring Report",
+      detail: "These will have blank Tier/Feasibility in the output.",
+      cells: unmatchedCells.slice(0, 20)
+    });
+  }
+
+  // Country validation
+  const ssuCountries = [...new Set(ssuRows.map(r => String(r.Country||"").trim()).filter(Boolean))];
+  const mappedCountries = ssuCountries.map(mapCountry);
+  let optionsCountries = null;
+  if (tplWb.SheetNames.includes("_Options")) {
+    const optWs = tplWb.Sheets["_Options"];
+    const optData = XLSX.utils.sheet_to_json(optWs, { header: 1, defval: null });
+    optionsCountries = new Set(optData.map(r => r[0]).filter(Boolean).map(String));
+  }
+  if (optionsCountries) {
+    const invalidCountries = [...new Set(mappedCountries.filter(c => !optionsCountries.has(c)))];
+    if (invalidCountries.length > 0) {
+      // Find rows for each invalid country
+      const countryCells = [];
+      ssuRows.forEach((r, i) => {
+        const mapped = mapCountry(String(r.Country||"").trim());
+        if (invalidCountries.includes(mapped)) {
+          countryCells.push({ loc: "SSU row " + ssuExcelRow(i), col: "Country", val: mapped });
+        }
+      });
+      warnings.push({
+        title: invalidCountries.length + " country name(s) not found in template's allowed list",
+        detail: "These may cause upload validation errors on the dashboard: " + invalidCountries.join(", "),
+        cells: countryCells.slice(0, 15)
+      });
+    }
+  }
+
+  return {
+    errors, warnings, info,
+    canProceed: errors.length === 0,
+    parsed: { ssuRows, ssuColMap, monitoring: buildMonitoringLookup(monValid), tplHeaders }
+  };
+}
+
+function buildMonitoringLookup(monValid) {
+  const lookup = {};
+  for (const row of monValid) {
+    const siteNo = String(row["Site No"]||"").trim();
+    if (!siteNo) continue;
+    let tier = null;
+    const tr = row["Tier"];
+    if (typeof tr === "string" && tr.startsWith("Tier")) {
+      const n = parseInt(tr.replace("Tier","").trim(),10);
+      if (!isNaN(n)) tier = n;
+    } else if (typeof tr === "number") tier = tr;
+    let feasibility = null;
+    for (const key of Object.keys(row)) {
+      if (key.toLowerCase().includes("feasibility")) {
+        const v = row[key];
+        if (v != null && v !== "") feasibility = v;
+        break;
+      }
+    }
+    lookup[siteNo] = { tier, feasibility };
+  }
+  return lookup;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BUILD
+// ═══════════════════════════════════════════════════════════════════════════
+
+function buildTracker(tplWb, ssuRows, monitoring, ssuColMap) {
+  const ws = tplWb.Sheets["Sites"];
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const headers = [];
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    const a = XLSX.utils.encode_cell({r:0,c});
+    headers[c] = ws[a] ? String(ws[a].v) : "";
+  }
+  const hdrIdx = {};
+  headers.forEach((h,i) => { if(h) hdrIdx[h]=i; });
+
+  for (let r = 1; r <= range.e.r; r++)
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const a = XLSX.utils.encode_cell({r,c});
+      if (ws[a]) delete ws[a];
+    }
+
+  const countryCol = hdrIdx["Country *"];
+  let matchedTier = 0;
+  const dateErrors = []; // { ssuRow, ssuCol, colName, rawValue }
+
+  for (let i = 0; i < ssuRows.length; i++) {
+    const row = ssuRows[i];
+    const r = i + 1;
+
+    for (const m of SSU_TO_TEMPLATE) {
+      const c = hdrIdx[m.tpl];
+      if (c === undefined) continue;
+      let val = row[m.ssu];
+      if (c === countryCol && val) val = mapCountry(val);
+      if (c >= 5) {
+        const original = val;
+        val = fmtDate(val);
+        if (original != null && original !== "" && val === null) {
+          const cleaned = typeof original === "string" ? cleanStr(original) : original;
+          if (cleaned != null) {
+            dateErrors.push({
+              row: ssuExcelRow(i),
+              col: ssuColMap[m.ssu] || "?",
+              colName: m.ssu,
+              rawValue: typeof original === "string" ? JSON.stringify(original) : String(original)
+            });
+          }
+        }
+      }
+      if (val != null && val !== "") {
+        ws[XLSX.utils.encode_cell({r,c})] = { t:"s", v:String(val) };
+      }
+    }
+
+    // SIV Actual duplicate
+    const sivRaw = row[SIV_ACTUAL_SSU];
+    const siv = fmtDate(sivRaw);
+    if (siv && hdrIdx[SIV_DATE_ACTUAL_TPL] !== undefined) {
+      ws[XLSX.utils.encode_cell({r, c:hdrIdx[SIV_DATE_ACTUAL_TPL]})] = {t:"s",v:siv};
+    } else if (sivRaw != null && sivRaw !== "" && siv === null) {
+      const cleaned = typeof sivRaw === "string" ? cleanStr(sivRaw) : sivRaw;
+      if (cleaned != null) {
+        dateErrors.push({
+          row: ssuExcelRow(i), col: ssuColMap[SIV_ACTUAL_SSU] || "?",
+          colName: SIV_ACTUAL_SSU,
+          rawValue: typeof sivRaw === "string" ? JSON.stringify(sivRaw) : String(sivRaw)
+        });
+      }
+    }
+
+    const sn = String(row["Site No"]||"").trim();
+    const mon = monitoring[sn];
+    if (mon) {
+      if (mon.tier != null && hdrIdx[TIER_TPL] !== undefined) {
+        ws[XLSX.utils.encode_cell({r,c:hdrIdx[TIER_TPL]})] = {t:"n",v:mon.tier};
+        matchedTier++;
+      }
+      if (mon.feasibility != null && hdrIdx[FEASIBILITY_TPL] !== undefined) {
+        ws[XLSX.utils.encode_cell({r,c:hdrIdx[FEASIBILITY_TPL]})] = {t:"n",v:mon.feasibility};
+      }
+    }
+  }
+
+  const nr = XLSX.utils.decode_range(ws["!ref"]);
+  nr.e.r = Math.max(nr.e.r, ssuRows.length);
+  ws["!ref"] = XLSX.utils.encode_range(nr);
+
+  return { sitesWritten: ssuRows.length, tiersMatched: matchedTier, dateErrors };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDER VALIDATION REPORT
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderCells(cells) {
+  if (!cells || cells.length === 0) return "";
+  let html = '<div class="val-cells">';
+  cells.forEach(c => {
+    html += '<div>';
+    html += '<span class="cell-loc">' + c.loc + '</span>';
+    if (c.col) html += ' <span class="cell-col">' + c.col + '</span>';
+    if (c.val) html += ' <span class="cell-val">' + escHtml(c.val) + '</span>';
+    html += '</div>';
+  });
+  if (cells.length >= 15) html += '<div style="color:var(--text-muted);opacity:0.5">… and possibly more</div>';
+  html += '</div>';
+  return html;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function renderReport(v, result) {
+  let html = '<div class="val-report"><div class="val-title">Validation Report</div>';
+
+  if (v.errors.length > 0) {
+    html += '<div class="val-section-label" style="color:var(--red)">Errors — build blocked</div>';
+    for (const e of v.errors) {
+      html += '<div class="val-item"><span class="val-icon" style="color:var(--red)">✕</span><div class="val-text">' + e.title;
+      if (e.detail) html += '<div class="val-detail">' + e.detail + '</div>';
+      html += renderCells(e.cells);
+      html += '</div></div>';
+    }
+  }
+
+  if (v.warnings.length > 0) {
+    html += '<div class="val-section val-section-label" style="color:var(--amber)">Warnings</div>';
+    for (const w of v.warnings) {
+      html += '<div class="val-item"><span class="val-icon" style="color:var(--amber)">⚠</span><div class="val-text">' + w.title;
+      if (w.detail) html += '<div class="val-detail">' + w.detail + '</div>';
+      html += renderCells(w.cells);
+      html += '</div></div>';
+    }
+  }
+
+  if (result) {
+    html += '<div class="val-section val-section-label" style="color:var(--emerald)">Build Results</div>';
+    html += '<div class="val-item"><span class="val-icon" style="color:var(--emerald)">✓</span><div class="val-text"><span style="font-family:var(--mono);color:var(--emerald)">' + result.sitesWritten + '</span> sites written to output</div></div>';
+    html += '<div class="val-item"><span class="val-icon" style="color:var(--amber)">✓</span><div class="val-text"><span style="font-family:var(--mono);color:var(--amber)">' + result.tiersMatched + '</span> sites matched for Tier/Feasibility</div></div>';
+
+    const unmatched = result.sitesWritten - result.tiersMatched;
+    if (unmatched > 0) {
+      html += '<div class="val-item"><span class="val-icon" style="color:var(--text-muted)">–</span><div class="val-text dim"><span style="font-family:var(--mono);color:var(--text-dim)">' + unmatched + '</span> sites had no Tier/Feasibility match</div></div>';
+    }
+
+    if (result.dateErrors.length > 0) {
+      const deCells = result.dateErrors.map(de => ({
+        loc: "SSU " + de.col + de.row,
+        col: de.colName,
+        val: de.rawValue
+      }));
+      html += '<div class="val-item"><span class="val-icon" style="color:var(--amber)">⚠</span><div class="val-text"><span style="font-family:var(--mono);color:var(--amber)">' + result.dateErrors.length + '</span> date value(s) could not be parsed and were left blank';
+      html += renderCells(deCells);
+      html += '</div></div>';
+    }
+  }
+
+  if (v.info.length > 0) {
+    html += '<div class="val-section val-section-label">Summary</div>';
+    for (const item of v.info) {
+      html += '<div class="val-item"><span class="val-icon" style="color:var(--text-muted)">·</span><div class="val-text dim">' + item.title + '</div></div>';
+    }
+  }
+
+  if (v.errors.length === 0 && v.warnings.length === 0 && (!result || result.dateErrors.length === 0)) {
+    html += '<div class="val-item"><span class="val-icon" style="color:var(--emerald)">✓</span><div class="val-text" style="color:var(--emerald)">All validations passed — no issues detected</div></div>';
+  }
+
+  html += '</div>';
+  return html;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════════════════════════════════════
+
+const state = { template:null, ssu:null, monitoring:null };
+
+function setupDropzone(dzId, inputId, key) {
+  const dz = document.getElementById(dzId);
+  const fi = document.getElementById(inputId);
+
+  function setFile(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['xlsx','xls','xlsm'].includes(ext)) {
+      showMsg("error", "<strong>" + file.name + "</strong> is not an Excel file. Please upload a .xlsx, .xls, or .xlsm file.");
+      return;
+    }
+    state[key] = file;
+    dz.classList.add("has-file");
+    dz.innerHTML = '<input type="file" class="file-input" id="' + inputId + '" accept=".xlsx,.xls,.xlsm">' +
+      '<span class="dz-file-check">✓</span>' +
+      '<span class="dz-file-name">' + file.name + '</span>' +
+      '<span class="dz-file-meta">' + (file.size/1024).toFixed(0) + ' KB · click to replace</span>';
+    document.getElementById(inputId).addEventListener("change", function(e) { if(e.target.files[0]) setFile(e.target.files[0]); });
+    dz.onclick = () => document.getElementById(inputId).click();
+    clearMsg(); updateButtons();
+  }
+
+  fi.addEventListener("change", function(e) { if(e.target.files[0]) setFile(e.target.files[0]); });
+  dz.addEventListener("dragover", function(e) { e.preventDefault(); dz.classList.add("dragover"); });
+  dz.addEventListener("dragleave", function() { dz.classList.remove("dragover"); });
+  dz.addEventListener("drop", function(e) { e.preventDefault(); dz.classList.remove("dragover"); if(e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); });
+}
+
+function updateButtons() {
+  const ready = state.template && state.ssu && state.monitoring;
+  const btn = document.getElementById("btn-build");
+  btn.disabled = !ready;
+  btn.classList.toggle("ready", ready);
+  document.getElementById("btn-reset").style.display = (state.template||state.ssu||state.monitoring) ? "" : "none";
+}
+
+function showMsg(type, html) {
+  document.getElementById("msg-area").innerHTML = '<div class="msg msg-' + type + '">' + html + '</div>';
+}
+function clearMsg() { document.getElementById("msg-area").innerHTML = ""; }
+
+document.getElementById("btn-build").addEventListener("click", async function() {
+  const btn = this;
+  btn.disabled = true;
+  btn.textContent = "Validating…";
+  clearMsg();
+
+  try {
+    const [tBuf, sBuf, mBuf] = await Promise.all([
+      readFile(state.template), readFile(state.ssu), readFile(state.monitoring)
+    ]);
+
+    let tWb, sWb, mWb;
+    try { tWb = XLSX.read(tBuf, {type:"array", cellStyles:true}); }
+    catch(e) { throw new Error("Could not read Template file — it may be corrupted or not a valid Excel file."); }
+    try { sWb = XLSX.read(sBuf, {type:"array"}); }
+    catch(e) { throw new Error("Could not read SSU Report — it may be corrupted or not a valid Excel file."); }
+    try { mWb = XLSX.read(mBuf, {type:"array"}); }
+    catch(e) { throw new Error("Could not read Monitoring Report — it may be corrupted or not a valid Excel file."); }
+
+    btn.textContent = "Building…";
+
+    const v = validate(tWb, sWb, mWb);
+
+    if (!v.canProceed) {
+      document.getElementById("msg-area").innerHTML =
+        '<div class="msg msg-error"><div class="label">Build failed — see errors below</div></div>' +
+        renderReport(v, null);
+      return;
+    }
+
+    const result = buildTracker(tWb, v.parsed.ssuRows, v.parsed.monitoring, v.parsed.ssuColMap);
+
+    const out = XLSX.write(tWb, {bookType:"xlsx", type:"array"});
+    const blob = new Blob([out], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Site_Tracker_Output_" + new Date().toISOString().slice(0,10) + ".xlsx";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    const hasWarnings = v.warnings.length > 0 || result.dateErrors.length > 0;
+    document.getElementById("msg-area").innerHTML =
+      '<div class="msg msg-success"><div class="label">Done — file downloaded' + (hasWarnings ? " (with warnings)" : "") + '</div></div>' +
+      renderReport(v, result);
+
+  } catch(e) {
+    showMsg("error", "<strong>Error:</strong> " + e.message.replace(/\n/g,"<br>"));
+  } finally {
+    btn.textContent = "Build & Download Tracker";
+    updateButtons();
+  }
+});
+
+document.getElementById("btn-reset").addEventListener("click", function() {
+  state.template=null; state.ssu=null; state.monitoring=null;
+  document.getElementById("dz-template").innerHTML = '<input type="file" class="file-input" id="fi-template" accept=".xlsx,.xls,.xlsm"><span class="dz-step">Step 1</span><span class="dz-label">Template</span><span class="dz-sub">Dashboard template you download weekly</span>';
+  document.getElementById("dz-ssu").innerHTML = '<input type="file" class="file-input" id="fi-ssu" accept=".xlsx,.xls,.xlsm"><span class="dz-step">Step 2</span><span class="dz-label">SSU Report</span><span class="dz-sub">Raw SSU data export from Horizon</span>';
+  document.getElementById("dz-monitoring").innerHTML = '<input type="file" class="file-input" id="fi-monitoring" accept=".xlsx,.xls,.xlsm"><span class="dz-step">Step 3</span><span class="dz-label">Monitoring</span><span class="dz-sub">Site Activation Monitoring for Tier & Feasibility</span>';
+  ["dz-template","dz-ssu","dz-monitoring"].forEach(id => document.getElementById(id).classList.remove("has-file","dragover"));
+  setupDropzone("dz-template","fi-template","template");
+  setupDropzone("dz-ssu","fi-ssu","ssu");
+  setupDropzone("dz-monitoring","fi-monitoring","monitoring");
+  clearMsg(); updateButtons();
+});
+
+(function() {
+  const el = document.getElementById("ref-content");
+  let h = "";
+  SSU_TO_TEMPLATE.forEach(m => {
+    h += '<div class="ref-row"><span class="ref-from c-emerald">' + m.ssu + '</span><span class="ref-arrow">→</span><span class="c-indigo">' + m.tpl + '</span></div>';
+  });
+  h += '<div class="ref-row"><span class="ref-from c-emerald">SIV Actual</span><span class="ref-arrow">→</span><span class="c-indigo">SIV Date Actual (duplicate)</span></div>';
+  h += '<div class="ref-row"><span class="ref-from c-amber">Monitoring: Tier</span><span class="ref-arrow">→</span><span class="c-indigo">Tier (number only)</span></div>';
+  h += '<div class="ref-row"><span class="ref-from c-amber">Monitoring: Feasibility</span><span class="ref-arrow">→</span><span class="c-indigo">Feasibility Estimate</span></div>';
+  h += '<div class="ref-section-title">Country name conversions</div>';
+  for (const [from, to] of Object.entries(COUNTRY_MAP)) {
+    h += '<div class="ref-row"><span class="ref-from c-red">' + from + '</span><span class="ref-arrow">→</span><span class="c-emerald">' + to + '</span></div>';
+  }
+  el.innerHTML = h;
+})();
+
+setupDropzone("dz-template","fi-template","template");
+setupDropzone("dz-ssu","fi-ssu","ssu");
+setupDropzone("dz-monitoring","fi-monitoring","monitoring");
+</script>
+</body>
+</html>
