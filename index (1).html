@@ -1,0 +1,1738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BNT327-05 Site Activation Tools</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a10; --surface: #12121c; --surface2: #1a1a28;
+    --border: #252536; --border-hover: #3a3a52;
+    --text: #e2e2ee; --text-dim: #7a7a96; --text-muted: #4a4a64;
+    --indigo: #7c6aff; --indigo-glow: #7c6aff40;
+    --emerald: #3ddba0; --emerald-glow: #3ddba030;
+    --amber: #f0b842; --amber-glow: #f0b84230; --red: #f06868;
+    --font: 'Outfit', -apple-system, sans-serif;
+    --mono: 'IBM Plex Mono', 'Consolas', monospace;
+  }
+  body { font-family:var(--font); background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:40px 24px 80px; -webkit-font-smoothing:antialiased; }
+  body::before { content:''; position:fixed; top:-50%; left:-50%; width:200%; height:200%; background:radial-gradient(ellipse at 30% 20%,#7c6aff08 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,#3ddba006 0%,transparent 50%); pointer-events:none; z-index:0; }
+  .content { position:relative; z-index:1; width:100%; max-width:760px; }
+
+  .tab-bar { display:flex; gap:4px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:4px; margin-bottom:36px; }
+  .tab-btn { flex:1; padding:13px 20px; border:none; border-radius:10px; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; background:transparent; color:var(--text-muted); transition:all .2s; letter-spacing:.2px; }
+  .tab-btn:hover { color:var(--text-dim); }
+  .tab-btn.active { background:linear-gradient(135deg,#6c5ce7,#7c6aff); color:#fff; box-shadow:0 4px 20px var(--indigo-glow); }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+
+  .badge { display:inline-flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border); border-radius:100px; padding:7px 16px; font-size:10px; font-weight:600; letter-spacing:1.8px; text-transform:uppercase; color:var(--emerald); }
+  .badge-dot { width:6px; height:6px; border-radius:50%; background:var(--emerald); box-shadow:0 0 8px var(--emerald-glow); animation:pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .header { text-align:center; margin-bottom:36px; }
+  .header h1 { font-size:32px; font-weight:800; letter-spacing:-1px; color:#fff; margin:16px 0 12px; line-height:1.1; }
+  .header p { font-size:14px; color:var(--text-dim); line-height:1.7; max-width:520px; margin:0 auto; font-weight:400; }
+
+  .upload-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:36px; }
+  .upload-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:36px; }
+  @media(max-width:600px){ .upload-grid,.upload-grid-2{grid-template-columns:1fr;} }
+
+  .dropzone { border:2px dashed var(--border); border-radius:16px; padding:32px 16px; min-height:140px; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:8px; cursor:pointer; transition:all .25s ease; background:transparent; position:relative; }
+  .dropzone:hover { border-color:var(--border-hover); background:#ffffff03; }
+  .dropzone.dragover { background:#ffffff06; }
+  .dropzone.has-file { background:#ffffff03; }
+  .dropzone.indigo.dragover,.dropzone.indigo.has-file { border-color:var(--indigo); }
+  .dropzone.emerald.dragover,.dropzone.emerald.has-file { border-color:var(--emerald); }
+  .dropzone.amber.dragover,.dropzone.amber.has-file { border-color:var(--amber); }
+  .dropzone .file-input { display:none; }
+  .dz-step { font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--text-muted); }
+  .dz-label { font-size:15px; font-weight:700; color:var(--text); }
+  .dz-sub { font-size:12px; color:var(--text-muted); text-align:center; max-width:180px; line-height:1.5; }
+  .dz-file-check { font-size:28px; margin-bottom:2px; }
+  .dz-file-name { font-size:12px; font-weight:600; text-align:center; word-break:break-all; padding:0 4px; }
+  .dz-file-meta { font-size:11px; color:var(--text-muted); }
+  .indigo .dz-file-check,.indigo .dz-file-name { color:var(--indigo); }
+  .emerald .dz-file-check,.emerald .dz-file-name { color:var(--emerald); }
+  .amber .dz-file-check,.amber .dz-file-name { color:var(--amber); }
+  .file-input { display:none; }
+
+  .actions { display:flex; gap:12px; justify-content:center; margin-bottom:28px; flex-wrap:wrap; }
+  .btn-build { font-family:var(--font); padding:15px 40px; font-size:14px; font-weight:700; border:none; border-radius:12px; cursor:pointer; background:var(--surface2); color:var(--text-muted); transition:all .3s ease; letter-spacing:.3px; }
+  .btn-build.ready { background:linear-gradient(135deg,#6c5ce7,#7c6aff); color:#fff; box-shadow:0 6px 32px var(--indigo-glow); }
+  .btn-build.ready:hover { transform:translateY(-1px); box-shadow:0 8px 40px #7c6aff50; }
+  .btn-build:disabled { cursor:not-allowed; opacity:.5; }
+  .btn-reset { font-family:var(--font); padding:15px 24px; font-size:13px; font-weight:600; border:1px solid var(--border); border-radius:12px; cursor:pointer; background:transparent; color:var(--text-dim); transition:all .2s ease; }
+  .btn-reset:hover { border-color:var(--border-hover); color:var(--text); }
+  .btn-download { font-family:var(--font); padding:15px 28px; font-size:14px; font-weight:700; border:none; border-radius:12px; cursor:pointer; background:linear-gradient(135deg,#1b8a4a,#2ecc71); color:#fff; box-shadow:0 6px 32px var(--emerald-glow); transition:all .3s; }
+  .btn-download:hover { transform:translateY(-1px); }
+
+  #msg-area .msg { width:100%; border-radius:12px; padding:18px 22px; font-size:13px; line-height:1.7; margin-bottom:12px; }
+  .msg-error { background:#1c0a0a; border:1px solid #3a1515; color:var(--red); }
+  .msg-success { background:#0a1c12; border:1px solid #153a20; color:var(--emerald); }
+  .msg .label { font-weight:700; font-size:14px; margin-bottom:6px; }
+  .val-report { width:100%; border-radius:12px; padding:20px 22px; font-size:13px; line-height:1.8; margin-bottom:12px; background:var(--surface); border:1px solid var(--border); }
+  .val-report .val-title { font-size:12px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; margin-bottom:10px; color:var(--text-dim); }
+  .val-item { display:flex; align-items:flex-start; gap:10px; padding:3px 0; }
+  .val-icon { flex-shrink:0; font-size:14px; width:20px; text-align:center; margin-top:2px; }
+  .val-text { flex:1; }
+  .val-text.dim { color:var(--text-muted); }
+  .val-detail { font-family:var(--mono); font-size:11px; color:var(--text-muted); margin-top:2px; padding-left:2px; line-height:1.8; }
+  .val-cells { font-family:var(--mono); font-size:10px; color:var(--text-muted); margin-top:4px; padding:6px 10px; background:#0a0a14; border-radius:6px; border:1px solid var(--border); max-height:120px; overflow-y:auto; line-height:1.9; }
+  .val-cells .cell-loc { color:var(--amber); } .val-cells .cell-col { color:var(--indigo); } .val-cells .cell-val { color:var(--red); opacity:0.7; }
+  .val-section { margin-top:14px; padding-top:12px; border-top:1px solid var(--border); }
+  .val-section-label { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px; }
+  .ref-panel { margin-top:40px; background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+  .ref-panel summary { padding:16px 22px; cursor:pointer; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); transition:color .2s; list-style:none; }
+  .ref-panel summary::-webkit-details-marker{display:none}
+  .ref-panel summary::before{content:'▸ '}
+  .ref-panel[open] summary::before{content:'▾ '}
+  .ref-panel summary:hover{color:var(--text-dim)}
+  .ref-content { padding:0 22px 18px; font-family:var(--mono); font-size:11px; line-height:2; color:var(--text-muted); }
+  .ref-row{display:flex;gap:8px;align-items:baseline} .ref-from{min-width:270px} .ref-arrow{color:var(--text-muted);opacity:.3}
+  .ref-section-title { font-family:var(--font); font-weight:700; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-muted); margin:12px 0 4px; padding-top:10px; border-top:1px solid var(--border); }
+  .c-emerald{color:var(--emerald)} .c-indigo{color:var(--indigo)} .c-amber{color:var(--amber)} .c-red{color:var(--red)}
+
+  .mrb-log { background:#0a0a14; border:1px solid var(--border); border-radius:12px; padding:16px; font-size:12px; font-family:var(--mono); line-height:1.8; max-height:340px; overflow-y:auto; white-space:pre-wrap; display:none; margin-bottom:16px; }
+  .mrb-log.visible { display:block; }
+  .mrb-log .ok { color:var(--emerald); } .mrb-log .warn { color:var(--amber); } .mrb-log .err { color:var(--red); } .mrb-log .info { color:var(--indigo); }
+  .mrb-summary { display:none; margin-top:20px; }
+  .mrb-summary.visible { display:block; }
+  .mrb-summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .mrb-stat { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px; }
+  .mrb-stat-label { font-size:10px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted); }
+  .mrb-stat-value { font-size:22px; font-weight:700; color:#fff; margin-top:2px; }
+  .mrb-stat-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.2); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; vertical-align:middle; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="content">
+  <div style="text-align:center;margin-bottom:24px;">
+    <div class="badge"><span class="badge-dot"></span>BNT327-05 · 100% client-side</div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('stb')">Site Tracker Builder</button>
+    <button class="tab-btn" onclick="switchTab('mrb')">Monitoring Report Builder</button>
+  </div>
+
+  <!-- TAB 1: SITE TRACKER BUILDER -->
+  <div class="tab-panel active" id="tab-stb">
+    <div class="header">
+      <h1>Site Tracker Builder</h1>
+      <p>Upload the three source files below. The tool maps SSU data and monitoring lookups into your template and downloads the completed tracker.</p>
+    </div>
+    <div class="upload-grid">
+      <div class="dropzone indigo" id="dz-template" onclick="document.getElementById('fi-template').click()">
+        <input type="file" class="file-input" id="fi-template" accept=".xlsx,.xls,.xlsm">
+        <span class="dz-step">Step 1</span><span class="dz-label">Template</span>
+        <span class="dz-sub">Dashboard template you download weekly</span>
+      </div>
+      <div class="dropzone emerald" id="dz-ssu" onclick="document.getElementById('fi-ssu').click()">
+        <input type="file" class="file-input" id="fi-ssu" accept=".xlsx,.xls,.xlsm">
+        <span class="dz-step">Step 2</span><span class="dz-label">SSU Report</span>
+        <span class="dz-sub">Raw SSU data export from Horizon</span>
+      </div>
+      <div class="dropzone amber" id="dz-monitoring" onclick="document.getElementById('fi-monitoring').click()">
+        <input type="file" class="file-input" id="fi-monitoring" accept=".xlsx,.xls,.xlsm">
+        <span class="dz-step">Step 3</span><span class="dz-label">Monitoring</span>
+        <span class="dz-sub">Site Activation Monitoring for Tier & Feasibility</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-build" id="btn-build" disabled>Build & Download Tracker</button>
+      <button class="btn-reset" id="btn-reset" style="display:none">Reset</button>
+    </div>
+    <div id="msg-area"></div>
+    <details class="ref-panel">
+      <summary>Column mapping reference</summary>
+      <div class="ref-content" id="ref-content"></div>
+    </details>
+  </div>
+
+  <!-- TAB 2: MONITORING REPORT BUILDER -->
+  <div class="tab-panel" id="tab-mrb">
+    <div class="header">
+      <h1>Monitoring Report Builder</h1>
+      <p>Upload the SSU Report and previous week's monitoring report to generate the new Weekly Report + Weekly Audit workbook.</p>
+    </div>
+    <div class="upload-grid-2">
+      <div class="dropzone emerald" id="mrb-dz-ssu" onclick="document.getElementById('mrb-fi-ssu').click()">
+        <input type="file" class="file-input" id="mrb-fi-ssu" accept=".xlsx,.xls,.xlsm">
+        <span class="dz-step">Step 1</span><span class="dz-label">SSU Report</span>
+        <span class="dz-sub">Current week's Horizon export</span>
+        <span class="dz-file-name" id="mrb-fname-ssu"></span>
+      </div>
+      <div class="dropzone amber" id="mrb-dz-prev" onclick="document.getElementById('mrb-fi-prev').click()">
+        <input type="file" class="file-input" id="mrb-fi-prev" accept=".xlsx,.xls,.xlsm">
+        <span class="dz-step">Step 2</span><span class="dz-label">Previous Report</span>
+        <span class="dz-sub">Last week's monitoring report</span>
+        <span class="dz-file-name" id="mrb-fname-prev"></span>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-build" id="mrb-btn-generate" disabled>Generate Monitoring Report</button>
+      <button class="btn-download" id="mrb-btn-download" style="display:none">⬇ Download Report</button>
+    </div>
+    <div class="mrb-log" id="mrb-log"></div>
+    <div class="mrb-summary" id="mrb-summary">
+      <div class="mrb-summary-grid" id="mrb-summary-grid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(id) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&id==='stb')||(i===1&&id==='mrb')));
+  document.getElementById('tab-stb').classList.toggle('active', id==='stb');
+  document.getElementById('tab-mrb').classList.toggle('active', id==='mrb');
+}
+
+// ════════════════════════════════════════════════════════════
+// TOOL 1: SITE TRACKER BUILDER
+// ════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SSU_TO_TEMPLATE = [
+  { ssu: "Country", tpl: "Country *" },
+  { ssu: "Site No", tpl: "Site # *" },
+  { ssu: "PI Name", tpl: "Principal Investigator *" },
+  { ssu: "Institution", tpl: "Institution Name *" },
+  { ssu: "Site: Horizon Status", tpl: "Status *" },
+  { ssu: "Date Selected", tpl: "Actual Selection Date" },
+  { ssu: "CDP Appr Planned", tpl: "CDP Appr - Planned Date" },
+  { ssu: "CDP Appr Actual", tpl: "CDP Appr - Actual Date" },
+  { ssu: "Contract Planned", tpl: "Contract - Planned Date" },
+  { ssu: "Contract Actual", tpl: "Contract - Actual Date" },
+  { ssu: "First Reg Doc Sent", tpl: "First Reg Doc Sent - Actual Date" },
+  { ssu: "Institution Budget Sent To Site", tpl: "Institution Budget Sent To Site - Actual Date" },
+  { ssu: "Institution Contract Sent To Site", tpl: "Institution Contract Sent To Site - Actual Date" },
+  { ssu: "Site IRB/IEC Submission (Planned)", tpl: "Site IRB/EC Submission - Planned Date" },
+  { ssu: "Site IRB/IEC Submission (Actual)", tpl: "Site IRB/EC Submission - Actual Date" },
+  { ssu: "Site IRB/IEC Approval (Planned)", tpl: "Site IRB/IEC Approval - Planned Date" },
+  { ssu: "Site IRB/IEC Approval (Actual)", tpl: "Site IRB/IEC Approval - Actual Date" },
+  { ssu: "SIV Scheduled", tpl: "SIV - Planned Date" },
+  { ssu: "SIV Actual", tpl: "SIV - Actual Date" },
+  { ssu: "Planned Site Activation Date", tpl: "Projected Activation Date (PAD)" },
+  { ssu: "Actual Site Activation Date", tpl: "Actual Activation Date" },
+];
+
+const SIV_ACTUAL_SSU = "SIV Actual";
+const SIV_DATE_ACTUAL_TPL = "SIV Date Actual";
+const FEASIBILITY_TPL = "Feasibility Estimate (screened per year)";
+const TIER_TPL = "Tier";
+const TEMPLATE_REQUIRED_SHEET = "Sites";
+const MONITORING_REQUIRED_SHEET = "Weekly Report";
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DYNAMIC COUNTRY MATCHING
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Comprehensive alias table: maps common variations → normalized keys
+// Multiple aliases can point to the same normalized form
+const COUNTRY_ALIASES = {
+  // The key is lowercase normalized, the value is an array of lowercase aliases
+  // We'll build a reverse lookup: alias → normalized key
+};
+
+// Build a flat alias → canonical lookup from known international variations
+const ALIAS_PAIRS = [
+  // Americas
+  ["usa", ["united states", "united states of america", "us", "u.s.", "u.s.a."]],
+  ["uk", ["united kingdom", "great britain", "england", "britain", "u.k."]],
+  ["south korea", ["korea, republic of", "republic of korea", "korea (republic of)", "korea republic", "korea south", "korea, south"]],
+  ["north korea", ["korea, democratic people's republic of", "democratic people's republic of korea", "korea (democratic people's republic of)", "korea, north"]],
+  ["czechia", ["czech republic", "czech"]],
+  ["russia", ["russian federation", "russia federation"]],
+  ["taiwan", ["taiwan, province of china", "taiwan province of china", "chinese taipei"]],
+  ["iran", ["iran, islamic republic of", "islamic republic of iran", "iran (islamic republic of)"]],
+  ["syria", ["syrian arab republic"]],
+  ["venezuela", ["venezuela, bolivarian republic of", "bolivarian republic of venezuela"]],
+  ["bolivia", ["bolivia, plurinational state of", "plurinational state of bolivia"]],
+  ["tanzania", ["tanzania, united republic of", "united republic of tanzania"]],
+  ["vietnam", ["viet nam"]],
+  ["laos", ["lao people's democratic republic", "lao pdr"]],
+  ["moldova", ["moldova, republic of", "republic of moldova"]],
+  ["ivory coast", ["côte d'ivoire", "cote d'ivoire", "cote divoire"]],
+  ["congo", ["congo, republic of the", "republic of the congo"]],
+  ["dr congo", ["congo, democratic republic of the", "democratic republic of the congo"]],
+  ["palestine", ["palestinian territory", "palestinian territory, occupied"]],
+  ["macedonia", ["north macedonia", "macedonia, the former yugoslav republic of"]],
+  ["eswatini", ["swaziland"]],
+  ["myanmar", ["burma"]],
+  ["cabo verde", ["cape verde"]],
+  ["timor-leste", ["east timor"]],
+  ["brunei", ["brunei darussalam"]],
+  ["micronesia", ["micronesia, federated states of"]],
+  ["netherlands", ["the netherlands", "holland"]],
+  ["philippines", ["the philippines"]],
+  ["uae", ["united arab emirates"]],
+  ["drc", ["democratic republic of congo", "democratic republic of the congo"]],
+];
+
+function buildAliasLookup() {
+  // Returns a Map: lowercased alias string → canonical name (as provided in ALIAS_PAIRS)
+  const lookup = new Map();
+  for (const [canonical, aliases] of ALIAS_PAIRS) {
+    lookup.set(canonical.toLowerCase(), canonical);
+    for (const alias of aliases) {
+      lookup.set(alias.toLowerCase(), canonical);
+    }
+  }
+  return lookup;
+}
+
+const ALIAS_LOOKUP = buildAliasLookup();
+
+function normalize(s) {
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Build a dynamic country map from SSU names → template names
+ * using the template's _Options sheet as the canonical list.
+ *
+ * Strategy (in order):
+ * 1. Exact match (case-sensitive)
+ * 2. Case-insensitive match
+ * 3. Alias lookup: both SSU and template names are checked against
+ *    the alias table. If they resolve to the same canonical form, it's a match.
+ * 4. Substring containment (one contains the other, case-insensitive)
+ * 5. No match → pass through and warn
+ */
+function buildCountryMap(ssuCountries, templateCountries) {
+  const countryMap = {};       // SSU name → template name
+  const matched = [];          // { ssu, tpl, method }
+  const unmatched = [];        // SSU names with no match
+
+  // Pre-compute template lookups
+  const tplLower = {};         // lowercase → original
+  const tplNorm = {};          // normalized → original
+  const tplCanonical = {};     // canonical alias → original
+  for (const tc of templateCountries) {
+    tplLower[tc.toLowerCase()] = tc;
+    tplNorm[normalize(tc)] = tc;
+    const aliasHit = ALIAS_LOOKUP.get(tc.toLowerCase());
+    if (aliasHit) tplCanonical[aliasHit.toLowerCase()] = tc;
+  }
+
+  for (const sc of ssuCountries) {
+    // 1. Exact match
+    if (templateCountries.includes(sc)) {
+      countryMap[sc] = sc;
+      continue;
+    }
+
+    // 2. Case-insensitive
+    if (tplLower[sc.toLowerCase()]) {
+      const tpl = tplLower[sc.toLowerCase()];
+      countryMap[sc] = tpl;
+      matched.push({ ssu: sc, tpl, method: "case-insensitive" });
+      continue;
+    }
+
+    // 3. Alias lookup
+    const ssuCanonical = ALIAS_LOOKUP.get(sc.toLowerCase());
+    if (ssuCanonical && tplCanonical[ssuCanonical.toLowerCase()]) {
+      const tpl = tplCanonical[ssuCanonical.toLowerCase()];
+      countryMap[sc] = tpl;
+      matched.push({ ssu: sc, tpl, method: "alias" });
+      continue;
+    }
+
+    // Also check if the SSU name's normalized form matches a template canonical
+    const ssuNorm = normalize(sc);
+    if (tplNorm[ssuNorm]) {
+      const tpl = tplNorm[ssuNorm];
+      countryMap[sc] = tpl;
+      matched.push({ ssu: sc, tpl, method: "normalized" });
+      continue;
+    }
+
+    // 4. Substring containment (shortest wins to avoid false positives)
+    const scLow = sc.toLowerCase();
+    let substringMatch = null;
+    for (const tc of templateCountries) {
+      const tcLow = tc.toLowerCase();
+      if (scLow.includes(tcLow) || tcLow.includes(scLow)) {
+        if (!substringMatch || tc.length < substringMatch.length) {
+          substringMatch = tc;
+        }
+      }
+    }
+    if (substringMatch) {
+      countryMap[sc] = substringMatch;
+      matched.push({ ssu: sc, tpl: substringMatch, method: "substring" });
+      continue;
+    }
+
+    // 5. No match
+    countryMap[sc] = sc; // pass through as-is
+    unmatched.push(sc);
+  }
+
+  return { countryMap, matched, unmatched };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function cleanStr(val) {
+  if (typeof val !== "string") return val;
+  const cleaned = val.replace(/[\s\u00A0\u3000\u2000-\u200B\uFEFF]+/g, " ").trim();
+  return cleaned || null;
+}
+
+function fmtDate(val) {
+  if (val == null || val === "") return null;
+  if (typeof val === "string") { val = cleanStr(val); if (!val) return null; }
+  if (typeof val === "number") {
+    const d = XLSX.SSF.parse_date_code(val);
+    if (d) return d.y + "-" + String(d.m).padStart(2,"0") + "-" + String(d.d).padStart(2,"0");
+  }
+  if (val instanceof Date && !isNaN(val)) return val.toISOString().slice(0,10);
+  if (typeof val === "string" && val.trim()) return val.trim();
+  return null;
+}
+
+function readFile(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = () => rej(new Error("Failed to read " + file.name));
+    r.readAsArrayBuffer(file);
+  });
+}
+
+function colLetter(c) {
+  let s = ""; c++;
+  while (c > 0) { c--; s = String.fromCharCode(65 + (c % 26)) + s; c = Math.floor(c / 26); }
+  return s;
+}
+
+function ssuExcelRow(dataIdx) { return dataIdx + 2; }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// READ TEMPLATE COUNTRIES FROM _OPTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function readTemplateCountries(tplWb) {
+  if (!tplWb.SheetNames.includes("_Options")) return null;
+  const ws = tplWb.Sheets["_Options"];
+  const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+  return data.map(r => r[0]).filter(Boolean).map(String);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VALIDATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+function validate(tplWb, ssuWb, monWb) {
+  const errors = [], warnings = [], info = [];
+
+  if (!tplWb.SheetNames.includes(TEMPLATE_REQUIRED_SHEET)) {
+    errors.push({ title: "Template is missing the 'Sites' sheet", detail: "Found sheets: " + tplWb.SheetNames.join(", ") + ". Make sure you uploaded the correct template file in slot ①." });
+    return { errors, warnings, info, canProceed: false };
+  }
+
+  const tplWs = tplWb.Sheets[TEMPLATE_REQUIRED_SHEET];
+  const tplRange = XLSX.utils.decode_range(tplWs["!ref"]);
+  const tplHeaders = [];
+  for (let c = tplRange.s.c; c <= tplRange.e.c; c++) {
+    const a = XLSX.utils.encode_cell({r:0,c});
+    tplHeaders.push(tplWs[a] ? String(tplWs[a].v) : "");
+  }
+
+  const tplHdrSet = new Set(tplHeaders.filter(Boolean));
+  const missingTplCols = [];
+  for (const m of SSU_TO_TEMPLATE) { if (!tplHdrSet.has(m.tpl)) missingTplCols.push(m.tpl); }
+  if (!tplHdrSet.has(SIV_DATE_ACTUAL_TPL)) missingTplCols.push(SIV_DATE_ACTUAL_TPL);
+  if (missingTplCols.length > 0) {
+    errors.push({ title: "Template is missing " + missingTplCols.length + " expected column(s)", detail: missingTplCols.join(", ") });
+  }
+
+  const knownTplCols = new Set(SSU_TO_TEMPLATE.map(m => m.tpl));
+  [SIV_DATE_ACTUAL_TPL, FEASIBILITY_TPL, TIER_TPL, "PA Version", "PA 'Go Live Date'",
+   "First Reg Doc Sent - Planned Date", "Institution Budget Sent To Site - Planned Date",
+   "Institution Contract Sent To Site - Planned Date"].forEach(c => knownTplCols.add(c));
+  const unknownTplCols = tplHeaders.filter(h => h && !knownTplCols.has(h));
+  if (unknownTplCols.length > 0) {
+    warnings.push({ title: "Template has " + unknownTplCols.length + " unrecognized column(s) — they will be left empty", detail: unknownTplCols.join(", ") });
+  }
+
+  // SSU
+  const ssuWs = ssuWb.Sheets[ssuWb.SheetNames[0]];
+  const ssuRows = XLSX.utils.sheet_to_json(ssuWs, { defval: null });
+  const ssuHeaderRow = XLSX.utils.sheet_to_json(ssuWs, { header: 1, defval: null })[0] || [];
+  const ssuColMap = {};
+  ssuHeaderRow.forEach((h, i) => { if (h) ssuColMap[String(h)] = colLetter(i); });
+
+  if (ssuRows.length === 0) {
+    errors.push({ title: "SSU Report has no data rows", detail: "The file appears to be empty or headers-only." });
+    return { errors, warnings, info, canProceed: false };
+  }
+
+  const ssuKeys = new Set(Object.keys(ssuRows[0]));
+  const missingSSUCols = [];
+  for (const m of SSU_TO_TEMPLATE) { if (!ssuKeys.has(m.ssu)) missingSSUCols.push(m.ssu); }
+  if (!ssuKeys.has(SIV_ACTUAL_SSU)) missingSSUCols.push(SIV_ACTUAL_SSU);
+  if (missingSSUCols.length > 0) {
+    errors.push({ title: "SSU Report is missing " + missingSSUCols.length + " expected column(s)", detail: missingSSUCols.join(", ") + ". The SSU format may have changed, or the wrong file was uploaded in slot ②." });
+  }
+
+  const blankSiteRows = [];
+  ssuRows.forEach((r, i) => {
+    if (!r["Site No"] || String(r["Site No"]).trim() === "") blankSiteRows.push({ row: ssuExcelRow(i), col: ssuColMap["Site No"] || "?" });
+  });
+  if (blankSiteRows.length > 0) {
+    warnings.push({ title: blankSiteRows.length + " SSU row(s) have a blank Site No", detail: "These rows will be written but cannot be matched for Tier/Feasibility.", cells: blankSiteRows.map(r => ({ loc: "SSU " + r.col + r.row, col: "Site No", val: "(empty)" })) });
+  }
+
+  const ssuSiteNos = ssuRows.map(r => String(r["Site No"]||"").trim()).filter(Boolean);
+  const siteNoRows = {};
+  ssuRows.forEach((r, i) => { const sn = String(r["Site No"]||"").trim(); if (sn) { if (!siteNoRows[sn]) siteNoRows[sn] = []; siteNoRows[sn].push(ssuExcelRow(i)); } });
+  const dupeEntries = Object.entries(siteNoRows).filter(([,rows]) => rows.length > 1);
+  if (dupeEntries.length > 0) {
+    warnings.push({ title: dupeEntries.length + " duplicate Site No(s) found in SSU Report", detail: "Each of these site numbers appears on multiple rows.", cells: dupeEntries.slice(0,15).map(([sn, rows]) => ({ loc: "SSU rows " + rows.join(", "), col: "Site No", val: sn })) });
+  }
+
+  info.push({ title: "SSU Report: " + ssuRows.length + " sites across " + new Set(ssuRows.map(r=>r.Country)).size + " countries" });
+
+  // Monitoring
+  if (!monWb.SheetNames.includes(MONITORING_REQUIRED_SHEET)) {
+    errors.push({ title: "Monitoring Report is missing the 'Weekly Report' sheet", detail: "Found sheets: " + monWb.SheetNames.join(", ") + ". Make sure you uploaded the correct file in slot ③." });
+    return { errors, warnings, info, canProceed: errors.length === 0 };
+  }
+
+  const monWs = monWb.Sheets[MONITORING_REQUIRED_SHEET];
+  const monRows = XLSX.utils.sheet_to_json(monWs, { defval: null, range: 4 });
+  const monValid = monRows.filter(r => r["Site No"] && String(r["Site No"]).trim());
+
+  if (monValid.length === 0) {
+    errors.push({ title: "Monitoring Report has no data in 'Weekly Report'", detail: "The sheet appears empty or the header row is not at row 5." });
+  }
+
+  if (monValid.length > 0 && !Object.keys(monValid[0]).includes("Tier")) {
+    warnings.push({ title: "Monitoring Report is missing the 'Tier' column", detail: "Tier values will not be populated in the output." });
+  }
+  const hasFeasibility = monValid.length > 0 && Object.keys(monValid[0]).some(k => k.toLowerCase().includes("feasibility"));
+  if (!hasFeasibility) {
+    warnings.push({ title: "Monitoring Report has no 'Feasibility' column", detail: "Feasibility Estimate will not be populated. This is expected if the column hasn't been added yet." });
+  }
+  info.push({ title: "Monitoring Report: " + monValid.length + " sites loaded" });
+
+  // Cross-file: site numbers
+  const ssuSiteSet = new Set(ssuSiteNos);
+  const monSiteSet = new Set(monValid.map(r => String(r["Site No"]).trim()));
+  const matchedSites = [...ssuSiteSet].filter(s => monSiteSet.has(s));
+  const ssuOnly = [...ssuSiteSet].filter(s => !monSiteSet.has(s));
+  const monOnly = [...monSiteSet].filter(s => !ssuSiteSet.has(s));
+  info.push({ title: "Site number match: " + matchedSites.length + " matched, " + ssuOnly.length + " in SSU only, " + monOnly.length + " in Monitoring only" });
+
+  if (matchedSites.length === 0 && ssuSiteSet.size > 0 && monSiteSet.size > 0) {
+    warnings.push({ title: "Zero site numbers match between SSU and Monitoring Report", detail: "SSU sample: " + [...ssuSiteSet].slice(0,3).join(", ") + " | Monitoring sample: " + [...monSiteSet].slice(0,3).join(", ") + ". Tier and Feasibility will not be populated. If this is deidentified test data, this is expected." });
+  } else if (ssuOnly.length > 0) {
+    const unmatchedCells = [];
+    ssuRows.forEach((r, i) => { const sn = String(r["Site No"]||"").trim(); if (sn && ssuOnly.includes(sn)) unmatchedCells.push({ loc: "SSU row " + ssuExcelRow(i), col: "Site No", val: sn }); });
+    warnings.push({ title: ssuOnly.length + " SSU site(s) have no match in Monitoring Report", detail: "These will have blank Tier/Feasibility in the output.", cells: unmatchedCells.slice(0,20) });
+  }
+
+  // Dynamic country matching
+  const templateCountries = readTemplateCountries(tplWb);
+  let countryMap = {};
+  let countryMatched = [];
+  let countryUnmatched = [];
+
+  if (templateCountries && templateCountries.length > 0) {
+    const ssuCountries = [...new Set(ssuRows.map(r => String(r.Country||"").trim()).filter(Boolean))];
+    const result = buildCountryMap(ssuCountries, templateCountries);
+    countryMap = result.countryMap;
+    countryMatched = result.matched;
+    countryUnmatched = result.unmatched;
+
+    if (countryMatched.length > 0) {
+      info.push({
+        title: "Country auto-mapping: " + countryMatched.length + " name(s) converted",
+        detail: countryMatched.map(m => m.ssu + " → " + m.tpl + " (" + m.method + ")").join(", ")
+      });
+    }
+
+    if (countryUnmatched.length > 0) {
+      const countryCells = [];
+      ssuRows.forEach((r, i) => {
+        const c = String(r.Country||"").trim();
+        if (countryUnmatched.includes(c)) countryCells.push({ loc: "SSU row " + ssuExcelRow(i), col: "Country", val: c });
+      });
+      warnings.push({
+        title: countryUnmatched.length + " country name(s) could not be matched to template's list",
+        detail: "These will be passed through as-is and may cause upload errors: " + countryUnmatched.join(", "),
+        cells: countryCells.slice(0,15)
+      });
+    }
+  } else {
+    warnings.push({ title: "Template has no '_Options' sheet — country names will be passed through without validation", detail: "Country name mismatches will not be detected." });
+  }
+
+  return {
+    errors, warnings, info,
+    canProceed: errors.length === 0,
+    parsed: { ssuRows, ssuColMap, monitoring: buildMonitoringLookup(monValid), tplHeaders, countryMap }
+  };
+}
+
+function buildMonitoringLookup(monValid) {
+  const lookup = {};
+  for (const row of monValid) {
+    const siteNo = String(row["Site No"]||"").trim();
+    if (!siteNo) continue;
+    let tier = null;
+    const tr = row["Tier"];
+    if (typeof tr === "string" && tr.startsWith("Tier")) { const n = parseInt(tr.replace("Tier","").trim(),10); if (!isNaN(n)) tier = n; }
+    else if (typeof tr === "number") tier = tr;
+    let feasibility = null;
+    for (const key of Object.keys(row)) { if (key.toLowerCase().includes("feasibility")) { const v = row[key]; if (v != null && v !== "") feasibility = v; break; } }
+    lookup[siteNo] = { tier, feasibility };
+  }
+  return lookup;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BUILD
+// ═══════════════════════════════════════════════════════════════════════════
+
+function buildTracker(tplWb, ssuRows, monitoring, ssuColMap, countryMap) {
+  const ws = tplWb.Sheets["Sites"];
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const headers = [];
+  for (let c = range.s.c; c <= range.e.c; c++) { const a = XLSX.utils.encode_cell({r:0,c}); headers[c] = ws[a] ? String(ws[a].v) : ""; }
+  const hdrIdx = {};
+  headers.forEach((h,i) => { if(h) hdrIdx[h]=i; });
+
+  for (let r = 1; r <= range.e.r; r++)
+    for (let c = range.s.c; c <= range.e.c; c++) { const a = XLSX.utils.encode_cell({r,c}); if (ws[a]) delete ws[a]; }
+
+  const countryCol = hdrIdx["Country *"];
+  let matchedTier = 0;
+  const dateErrors = [];
+
+  for (let i = 0; i < ssuRows.length; i++) {
+    const row = ssuRows[i];
+    const r = i + 1;
+
+    for (const m of SSU_TO_TEMPLATE) {
+      const c = hdrIdx[m.tpl];
+      if (c === undefined) continue;
+      let val = row[m.ssu];
+
+      // Dynamic country mapping
+      if (c === countryCol && val) {
+        const trimmed = String(val).trim();
+        val = countryMap[trimmed] || trimmed;
+      }
+
+      if (c >= 5) {
+        const original = val;
+        val = fmtDate(val);
+        if (original != null && original !== "" && val === null) {
+          const cleaned = typeof original === "string" ? cleanStr(original) : original;
+          if (cleaned != null) dateErrors.push({ row: ssuExcelRow(i), col: ssuColMap[m.ssu] || "?", colName: m.ssu, rawValue: typeof original === "string" ? JSON.stringify(original) : String(original) });
+        }
+      }
+      if (val != null && val !== "") ws[XLSX.utils.encode_cell({r,c})] = { t:"s", v:String(val) };
+    }
+
+    const sivRaw = row[SIV_ACTUAL_SSU];
+    const siv = fmtDate(sivRaw);
+    if (siv && hdrIdx[SIV_DATE_ACTUAL_TPL] !== undefined) ws[XLSX.utils.encode_cell({r, c:hdrIdx[SIV_DATE_ACTUAL_TPL]})] = {t:"s",v:siv};
+    else if (sivRaw != null && sivRaw !== "" && siv === null) {
+      const cleaned = typeof sivRaw === "string" ? cleanStr(sivRaw) : sivRaw;
+      if (cleaned != null) dateErrors.push({ row: ssuExcelRow(i), col: ssuColMap[SIV_ACTUAL_SSU] || "?", colName: SIV_ACTUAL_SSU, rawValue: typeof sivRaw === "string" ? JSON.stringify(sivRaw) : String(sivRaw) });
+    }
+
+    const sn = String(row["Site No"]||"").trim();
+    const mon = monitoring[sn];
+    if (mon) {
+      if (mon.tier != null && hdrIdx[TIER_TPL] !== undefined) { ws[XLSX.utils.encode_cell({r,c:hdrIdx[TIER_TPL]})] = {t:"n",v:mon.tier}; matchedTier++; }
+      if (mon.feasibility != null && hdrIdx[FEASIBILITY_TPL] !== undefined) ws[XLSX.utils.encode_cell({r,c:hdrIdx[FEASIBILITY_TPL]})] = {t:"n",v:mon.feasibility};
+    }
+  }
+
+  const nr = XLSX.utils.decode_range(ws["!ref"]);
+  nr.e.r = Math.max(nr.e.r, ssuRows.length);
+  ws["!ref"] = XLSX.utils.encode_range(nr);
+
+  return { sitesWritten: ssuRows.length, tiersMatched: matchedTier, dateErrors };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function escHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function renderCells(cells) {
+  if (!cells || cells.length === 0) return "";
+  let html = '<div class="val-cells">';
+  cells.forEach(c => { html += '<div><span class="cell-loc">' + c.loc + '</span>'; if (c.col) html += ' <span class="cell-col">' + c.col + '</span>'; if (c.val) html += ' <span class="cell-val">' + escHtml(c.val) + '</span>'; html += '</div>'; });
+  if (cells.length >= 15) html += '<div style="color:var(--text-muted);opacity:0.5">… and possibly more</div>';
+  html += '</div>';
+  return html;
+}
+
+function renderReport(v, result) {
+  let html = '<div class="val-report"><div class="val-title">Validation Report</div>';
+
+  if (v.errors.length > 0) {
+    html += '<div class="val-section-label" style="color:var(--red)">Errors — build blocked</div>';
+    for (const e of v.errors) { html += '<div class="val-item"><span class="val-icon" style="color:var(--red)">✕</span><div class="val-text">' + e.title; if (e.detail) html += '<div class="val-detail">' + e.detail + '</div>'; html += renderCells(e.cells) + '</div></div>'; }
+  }
+
+  if (v.warnings.length > 0) {
+    html += '<div class="val-section val-section-label" style="color:var(--amber)">Warnings</div>';
+    for (const w of v.warnings) { html += '<div class="val-item"><span class="val-icon" style="color:var(--amber)">⚠</span><div class="val-text">' + w.title; if (w.detail) html += '<div class="val-detail">' + w.detail + '</div>'; html += renderCells(w.cells) + '</div></div>'; }
+  }
+
+  if (result) {
+    html += '<div class="val-section val-section-label" style="color:var(--emerald)">Build Results</div>';
+    html += '<div class="val-item"><span class="val-icon" style="color:var(--emerald)">✓</span><div class="val-text"><span style="font-family:var(--mono);color:var(--emerald)">' + result.sitesWritten + '</span> sites written to output</div></div>';
+    html += '<div class="val-item"><span class="val-icon" style="color:var(--amber)">✓</span><div class="val-text"><span style="font-family:var(--mono);color:var(--amber)">' + result.tiersMatched + '</span> sites matched for Tier/Feasibility</div></div>';
+    const unmatched = result.sitesWritten - result.tiersMatched;
+    if (unmatched > 0) html += '<div class="val-item"><span class="val-icon" style="color:var(--text-muted)">–</span><div class="val-text dim"><span style="font-family:var(--mono);color:var(--text-dim)">' + unmatched + '</span> sites had no Tier/Feasibility match</div></div>';
+    if (result.dateErrors.length > 0) {
+      const deCells = result.dateErrors.map(de => ({ loc: "SSU " + de.col + de.row, col: de.colName, val: de.rawValue }));
+      html += '<div class="val-item"><span class="val-icon" style="color:var(--amber)">⚠</span><div class="val-text"><span style="font-family:var(--mono);color:var(--amber)">' + result.dateErrors.length + '</span> date value(s) could not be parsed and were left blank' + renderCells(deCells) + '</div></div>';
+    }
+  }
+
+  if (v.info.length > 0) {
+    html += '<div class="val-section val-section-label">Summary</div>';
+    for (const item of v.info) { html += '<div class="val-item"><span class="val-icon" style="color:var(--text-muted)">·</span><div class="val-text dim">' + item.title; if (item.detail) html += '<div class="val-detail">' + item.detail + '</div>'; html += '</div></div>'; }
+  }
+
+  if (v.errors.length === 0 && v.warnings.length === 0 && (!result || result.dateErrors.length === 0)) {
+    html += '<div class="val-item"><span class="val-icon" style="color:var(--emerald)">✓</span><div class="val-text" style="color:var(--emerald)">All validations passed — no issues detected</div></div>';
+  }
+
+  html += '</div>';
+  return html;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════════════════════════════════════
+
+const state = { template:null, ssu:null, monitoring:null };
+
+function setupDropzone(dzId, inputId, key) {
+  const dz = document.getElementById(dzId);
+  const fi = document.getElementById(inputId);
+  function setFile(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['xlsx','xls','xlsm'].includes(ext)) { showMsg("error","<strong>"+file.name+"</strong> is not an Excel file."); return; }
+    state[key] = file;
+    dz.classList.add("has-file");
+    dz.innerHTML = '<input type="file" class="file-input" id="'+inputId+'" accept=".xlsx,.xls,.xlsm"><span class="dz-file-check">✓</span><span class="dz-file-name">'+file.name+'</span><span class="dz-file-meta">'+(file.size/1024).toFixed(0)+' KB · click to replace</span>';
+    document.getElementById(inputId).addEventListener("change", function(e) { if(e.target.files[0]) setFile(e.target.files[0]); });
+    dz.onclick = () => document.getElementById(inputId).click();
+    clearMsg(); updateButtons();
+  }
+  fi.addEventListener("change", function(e) { if(e.target.files[0]) setFile(e.target.files[0]); });
+  dz.addEventListener("dragover", function(e) { e.preventDefault(); dz.classList.add("dragover"); });
+  dz.addEventListener("dragleave", function() { dz.classList.remove("dragover"); });
+  dz.addEventListener("drop", function(e) { e.preventDefault(); dz.classList.remove("dragover"); if(e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); });
+}
+
+function updateButtons() {
+  const ready = state.template && state.ssu && state.monitoring;
+  const btn = document.getElementById("btn-build");
+  btn.disabled = !ready;
+  btn.classList.toggle("ready", ready);
+  document.getElementById("btn-reset").style.display = (state.template||state.ssu||state.monitoring) ? "" : "none";
+}
+
+function showMsg(type, html) { document.getElementById("msg-area").innerHTML = '<div class="msg msg-'+type+'">'+html+'</div>'; }
+function clearMsg() { document.getElementById("msg-area").innerHTML = ""; }
+
+document.getElementById("btn-build").addEventListener("click", async function() {
+  const btn = this;
+  btn.disabled = true;
+  btn.textContent = "Validating…";
+  clearMsg();
+  try {
+    const [tBuf, sBuf, mBuf] = await Promise.all([readFile(state.template), readFile(state.ssu), readFile(state.monitoring)]);
+    let tWb, sWb, mWb;
+    try { tWb = XLSX.read(tBuf, {type:"array", cellStyles:true}); } catch(e) { throw new Error("Could not read Template file — it may be corrupted."); }
+    try { sWb = XLSX.read(sBuf, {type:"array"}); } catch(e) { throw new Error("Could not read SSU Report — it may be corrupted."); }
+    try { mWb = XLSX.read(mBuf, {type:"array"}); } catch(e) { throw new Error("Could not read Monitoring Report — it may be corrupted."); }
+
+    btn.textContent = "Building…";
+    const v = validate(tWb, sWb, mWb);
+
+    if (!v.canProceed) {
+      document.getElementById("msg-area").innerHTML = '<div class="msg msg-error"><div class="label">Build failed — see errors below</div></div>' + renderReport(v, null);
+      return;
+    }
+
+    const result = buildTracker(tWb, v.parsed.ssuRows, v.parsed.monitoring, v.parsed.ssuColMap, v.parsed.countryMap);
+
+    const out = XLSX.write(tWb, {bookType:"xlsx", type:"array"});
+    const blob = new Blob([out], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Site_Tracker_Output_" + new Date().toISOString().slice(0,10) + ".xlsx";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    const hasWarnings = v.warnings.length > 0 || result.dateErrors.length > 0;
+    document.getElementById("msg-area").innerHTML = '<div class="msg msg-success"><div class="label">Done — file downloaded' + (hasWarnings ? " (with warnings)" : "") + '</div></div>' + renderReport(v, result);
+  } catch(e) {
+    showMsg("error", "<strong>Error:</strong> " + e.message.replace(/\n/g,"<br>"));
+  } finally {
+    btn.textContent = "Build & Download Tracker";
+    updateButtons();
+  }
+});
+
+document.getElementById("btn-reset").addEventListener("click", function() {
+  state.template=null; state.ssu=null; state.monitoring=null;
+  document.getElementById("dz-template").innerHTML = '<input type="file" class="file-input" id="fi-template" accept=".xlsx,.xls,.xlsm"><span class="dz-step">Step 1</span><span class="dz-label">Template</span><span class="dz-sub">Dashboard template you download weekly</span>';
+  document.getElementById("dz-ssu").innerHTML = '<input type="file" class="file-input" id="fi-ssu" accept=".xlsx,.xls,.xlsm"><span class="dz-step">Step 2</span><span class="dz-label">SSU Report</span><span class="dz-sub">Raw SSU data export from Horizon</span>';
+  document.getElementById("dz-monitoring").innerHTML = '<input type="file" class="file-input" id="fi-monitoring" accept=".xlsx,.xls,.xlsm"><span class="dz-step">Step 3</span><span class="dz-label">Monitoring</span><span class="dz-sub">Site Activation Monitoring for Tier & Feasibility</span>';
+  ["dz-template","dz-ssu","dz-monitoring"].forEach(id => document.getElementById(id).classList.remove("has-file","dragover"));
+  setupDropzone("dz-template","fi-template","template");
+  setupDropzone("dz-ssu","fi-ssu","ssu");
+  setupDropzone("dz-monitoring","fi-monitoring","monitoring");
+  clearMsg(); updateButtons();
+});
+
+// Reference panel (static mappings only — country conversions are now dynamic)
+(function() {
+  const el = document.getElementById("ref-content");
+  let h = "";
+  SSU_TO_TEMPLATE.forEach(m => { h += '<div class="ref-row"><span class="ref-from c-emerald">' + m.ssu + '</span><span class="ref-arrow">→</span><span class="c-indigo">' + m.tpl + '</span></div>'; });
+  h += '<div class="ref-row"><span class="ref-from c-emerald">SIV Actual</span><span class="ref-arrow">→</span><span class="c-indigo">SIV Date Actual (duplicate)</span></div>';
+  h += '<div class="ref-row"><span class="ref-from c-amber">Monitoring: Tier</span><span class="ref-arrow">→</span><span class="c-indigo">Tier (number only)</span></div>';
+  h += '<div class="ref-row"><span class="ref-from c-amber">Monitoring: Feasibility</span><span class="ref-arrow">→</span><span class="c-indigo">Feasibility Estimate</span></div>';
+  h += '<div class="ref-section-title">Country names</div>';
+  h += '<div style="font-family:var(--font);font-size:12px;color:var(--text-muted);line-height:1.6;">Country names are matched dynamically from the template\'s _Options sheet. The tool auto-converts SSU names (e.g. "United States", "Korea, Republic of") to the template\'s format (e.g. "USA", "South Korea"). Any unmatched names appear in the validation report.</div>';
+  el.innerHTML = h;
+})();
+
+setupDropzone("dz-template","fi-template","template");
+setupDropzone("dz-ssu","fi-ssu","ssu");
+setupDropzone("dz-monitoring","fi-monitoring","monitoring");
+
+
+// ════════════════════════════════════════════════════════════
+// TOOL 2: MONITORING REPORT BUILDER
+// ════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════
+// REFERENCE DATA (baked in)
+// ═══════════════════════════════════════════════════════════════════
+const REF_DATA = {"regions":{"Argentina":"LATAM","Australia":"APAC","Belgium":"EU","Brazil":"LATAM","Canada":"NA","China":"APAC","Czech Republic":"EU","France":"EU","Georgia":"EMEA","Germany":"EU","Italy":"EU","Japan":"APAC","Korea, Republic of":"APAC","Mexico":"LATAM","Netherlands":"EU","Poland":"EU","Singapore":"APAC","Spain":"EU","Turkey":"EMEA","United Kingdom":"EMEA","United States":"US"},"tiers":{"032-01":{"t":"Tier 4","f":1.47105},"032-02":{"t":"Tier 3","f":1.2803583333333335},"032-03":{"t":"Tier 4","f":1.702604166666666},"032-04":{"t":"Tier 2","f":8.172500000000001},"032-05":{"t":"Tier 4","f":1.702604166666666},"032-06":{"t":"Tier 2","f":1.8506250000000006},"032-07":{"t":"Tier 2","f":1.702604166666666},"032-08":{"t":"Tier 4","f":1.1032875000000002},"032-09":{"t":"Tier 4","f":1.2803583333333335},"032-10":{"t":"Tier 4","f":2.0973750000000004},"036-01":{"t":"Tier 2","f":3.6067704207573286},"036-02":{"t":"Tier 4","f":2.157896832931735},"036-03":{"t":"Tier 4","f":1.6231250000000004},"036-04":{"t":"Tier 4","f":2.404513613838219},"036-05":{"t":"Tier 4","f":2.6973710411646703},"036-06":{"t":"Tier 2","f":2.157896832931735},"036-07":{"t":"Tier 4","f":2.3377083333333335},"036-08":{"t":"Tier 3","f":2.2041250000000003},"056-01":{"t":"Tier 3","f":0.9356323796940261},"056-02":{"t":"Tier 2","f":0.5293006033697634},"056-03":{"t":"Tier 2","f":0.86625},"056-04":{"t":"Tier 1","f":1.6574059297437034},"056-05":{"t":"Tier 3","f":1.1024999999999996},"056-06":{"t":"Tier 3","f":0.748505903755221},"076-01":{"t":"Tier 2","f":2.104673134612134},"076-02":{"t":"Tier 4","f":2.3725406244718616},"076-03":{"t":"Tier 3","f":1.849561239507633},"076-04":{"t":"Tier 2","f":4.438946974818322},"076-05":{"t":"Tier 3","f":2.219473487409161},"076-06":{"t":"Tier 1","f":2.9592979832122133},"076-07":{"t":"Tier 3","f":2.9592979832122133},"076-08":{"t":"Tier 2","f":1.849561239507633},"076-09":{"t":"Tier 1","f":6.326774998591628},"076-10":{"t":"Tier 3","f":1.581693749647907},"076-11":{"t":"Tier 1","f":2.0789999999999997},"076-12":{"t":"Tier 1","f":2.0789999999999997},"124-01":{"t":"Tier 2","f":1.9296244522883845},"124-02":{"t":"Tier 4","f":0.6717951796855857},"124-03":{"t":"Tier 4","f":1.0720135846046581},"124-04":{"t":"Tier 3","f":1.0720135846046581},"124-05":{"t":"Tier 2","f":1.6794879492139645},"156-01":{"t":"Tier 1","f":20.843743303900983},"156-02":{"t":"Tier 1","f":2.230843877931024},"156-03":{"t":"Tier 2","f":1.859036564942521},"156-04":{"t":"Tier 1","f":1.859036564942521},"156-05":{"t":"Tier 3","f":0.5239103046656193},"156-06":{"t":"Tier 3","f":3.718073129885042},"156-07":{"t":"Tier 1","f":1.859036564942521},"156-09":{"t":"Tier 1","f":1.3970941457749848},"156-10":{"t":"Tier 1","f":4.461687755862048},"156-11":{"t":"Tier 2","f":1.0478206093312386},"156-12":{"t":"Tier 1","f":1.487229251954016},"156-13":{"t":"Tier 2","f":2.1125415510710455},"156-14":{"t":"Tier 2","f":0.6985470728874924},"156-15":{"t":"Tier 2","f":8.380968749999997},"156-16":{"t":"Tier 1","f":0.8731838411093659},"156-17":{"t":"Tier 3","f":0.9295182824712604},"156-18":{"t":"Tier 2","f":0.6534795197979768},"156-19":{"t":"Tier 4","f":1.115421938965512},"156-20":{"t":"Tier 2","f":1.859036564942521},"156-21":{"t":"Tier 4","f":0.5239103046656193},"156-22":{"t":"Tier 4","f":0.3492735364437462},"203-01":{"t":"Tier 2","f":0.92225},"203-02":{"t":"Tier 3","f":1.655347477283472},"203-03":{"t":"Tier 4","f":1.3242779818267774},"203-04":{"t":"Tier 4","f":0.92225},"203-05":{"t":"Tier 2","f":1.8445},"250-01":{"t":"Tier 2","f":1.0884899104430505},"250-02":{"t":"Tier 2","f":0.7774927931736072},"250-03":{"t":"Tier 1","f":1.243988469077772},"250-04":{"t":"Tier 3","f":0.621994234538886},"250-05":{"t":"Tier 1","f":1.243988469077772},"250-06":{"t":"Tier 2","f":0.7774927931736072},"250-07":{"t":"Tier 1","f":0.92225},"250-08":{"t":"Tier 1","f":1.243988469077772},"250-09":{"t":"Tier 1","f":1.243988469077772},"250-10":{"t":"Tier 3","f":0.621994234538886},"250-11":{"t":"Tier 1","f":1.5549855863472144},"268-01":{"t":"Tier 3","f":2.104375},"268-02":{"t":"Tier 3","f":1.2626249999999999},"268-03":{"t":"Tier 2","f":2.5252499999999998},"268-04":{"t":"Tier 3","f":2.104375},"276-01":{"t":"Tier 3","f":1.0652613411324923},"276-02":{"t":"Tier 3","f":1.7142136523971137},"276-03":{"t":"Tier 2","f":2.5713204785956716},"276-04":{"t":"Tier 3","f":1.2856602392978358},"276-05":{"t":"Tier 1","f":1.7142136523971137},"276-06":{"t":"Tier 2","f":1.7142136523971137},"276-07":{"t":"Tier 3","f":1.7142136523971137},"276-08":{"t":"Tier 2","f":2.142767065496392},"276-10":{"t":"Tier 3","f":0.8571068261985568},"276-11":{"t":"Tier 3","f":1.212193939909388},"276-12":{"t":"Tier 1","f":2.0203232331823124},"276-13":{"t":"Tier 3","f":2.142767065496392},"276-14":{"t":"Tier 1","f":1.7142136523971137},"276-15":{"t":"Tier 3","f":1.7150000000000003},"276-16":{"t":"Tier 2","f":1.7142136523971137},"276-17":{"t":"Tier 3","f":1.4203484548433227},"276-18":{"t":"Tier 2","f":1.7142136523971137},"276-19":{"t":"#N/A","f":"#N/A"},"380-01":{"t":"Tier 2","f":0.9325665128001895},"380-02":{"t":"Tier 1","f":1.865133025600379},"380-03":{"t":"Tier 1","f":2.978196282813509},"380-04":{"t":"Tier 2","f":1.4138911645680294},"380-05":{"t":"Tier 2","f":2.4818302356779247},"380-06":{"t":"Tier 3","f":0.6543006984969073},"380-07":{"t":"Tier 1","f":4.06117674929115},"380-08":{"t":"Tier 3","f":1.2183530247873446},"380-09":{"t":"Tier 2","f":0.7445490707033773},"380-10":{"t":"Tier 3","f":1.2409151178389624},"392-01":{"t":"Tier 4","f":1.3533333333333328},"392-02":{"t":"Tier 3","f":1.446666666666666},"392-03":{"t":"Tier 2","f":1.6333333333333326},"392-04":{"t":"Tier 4","f":1.3533333333333328},"392-05":{"t":"Tier 2","f":1.8083333333333336},"392-06":{"t":"Tier 4","f":2.3099999999999996},"392-07":{"t":"Tier 2","f":1.0966666666666665},"392-08":{"t":"Tier 2","f":2.3099999999999996},"392-09":{"t":"Tier 4","f":1.3533333333333328},"392-10":{"t":"Tier 2","f":1.446666666666666},"392-11":{"t":"Tier 2","f":1.446666666666666},"392-12":{"t":"Tier 2","f":1.446666666666666},"392-13":{"t":"Tier 4","f":1.925},"392-14":{"t":"Tier 1","f":1.6449999999999996},"392-15":{"t":"Tier 1","f":4.339999999999999},"392-16":{"t":"Tier 2","f":4.339999999999999},"392-17":{"t":"Tier 4","f":1.0849999999999997},"392-18":{"t":"Tier 2","f":1.9258749999999998},"392-19":{"t":"Tier 4","f":1.3533333333333328},"392-20":{"t":"Tier 1","f":1.8899999999999995},"392-21":{"t":"Tier 2","f":1.9258749999999998},"392-22":{"t":"Tier 4","f":1.6773749999999998},"410-01":{"t":"Tier 2","f":4.403},"410-02":{"t":"Tier 4","f":2.751875},"410-03":{"t":"Tier 1","f":4.403},"410-04":{"t":"Tier 3","f":1.6511250000000006},"410-05":{"t":"Tier 4","f":1.10075},"410-06":{"t":"Tier 2","f":6.6045000000000025},"410-07":{"t":"Tier 2","f":2.603125},"410-08":{"t":"Tier 2","f":1.6511250000000006},"410-09":{"t":"Tier 2","f":2.8201250000000004},"484-01":{"t":"Tier 4","f":1.085552049649785},"484-02":{"t":"Tier 4","f":0.8141640372373389},"484-03":{"t":"Tier 1","f":1.6283280744746778},"484-04":{"t":"Tier 3","f":2.1571666666666673},"484-05":{"t":"Tier 4","f":1.085552049649785},"484-06":{"t":"Tier 1","f":2.7138801241244637},"528-01":{"t":"Tier 3","f":1.216122429361217},"528-02":{"t":"Tier 3","f":0.9139344317623697},"528-03":{"t":"Tier 2","f":1.5993852555841468},"528-04":{"t":"Tier 3","f":0.9728979434889742},"528-05":{"t":"Tier 1","f":1.9457958869779484},"616-01":{"t":"Tier 1","f":2.37054650941368},"616-02":{"t":"Tier 2","f":6.804346462205934},"616-03":{"t":"Tier 4","f":1.931556415077814},"616-04":{"t":"Tier 1","f":2.414445518847267},"616-05":{"t":"Tier 4","f":0.9041666666666668},"616-06":{"t":"Tier 2","f":2.560775550292556},"616-07":{"t":"Tier 2","f":6.350723364725536},"616-08":{"t":"Tier 2","f":2.751004591171432},"616-09":{"t":"Tier 2","f":3.1295833333333336},"616-10":{"t":"Tier 2","f":3.1295833333333336},"616-11":{"t":"Tier 4","f":1.26875},"616-12":{"t":"Tier 3","f":2.9604166666666663},"616-13":{"t":"Tier 2","f":2.9604166666666663},"616-14":{"t":"Tier 1","f":1.8229166666666665},"616-15":{"t":"Tier 3","f":2.552083333333333},"702-01":{"t":"Tier 1","f":1.873229166666667},"702-02":{"t":"Tier 4","f":0.7492916666666664},"702-03":{"t":"Tier 4","f":0.7492916666666664},"724-01":{"t":"Tier 3","f":1.8771051263268326},"724-02":{"t":"Tier 2","f":2.2525261515921993},"724-03":{"t":"Tier 2","f":1.8771051263268326},"724-04":{"t":"Tier 2","f":1.5108333333333337},"724-05":{"t":"Tier 3","f":1.0619051857506083},"724-06":{"t":"Tier 1","f":2.2525261515921993},"724-07":{"t":"Tier 2","f":2.2525261515921993},"724-08":{"t":"Tier 4","f":1.4158735810008103},"724-09":{"t":"Tier 4","f":1.5108333333333337},"724-10":{"t":"Tier 2","f":1.5016841010614654},"724-11":{"t":"Tier 2","f":1.7698419762510136},"724-12":{"t":"Tier 2","f":1.1262630757960996},"724-13":{"t":"Tier 2","f":1.1262630757960996},"792-02":{"t":"Tier 2","f":4.142448215036228},"792-03":{"t":"Tier 1","f":3.91853209530454},"792-04":{"t":"Tier 2","f":3.5266788857740865},"792-05":{"t":"Tier 2","f":3.313958572028982},"792-06":{"t":"Tier 1","f":3.694615975572852},"792-07":{"t":"Tier 1","f":1.95926604765227},"792-09":{"t":"Tier 3","f":2.586231182900996},"792-10":{"t":"Tier 2","f":5.8777981429568085},"792-11":{"t":"Tier 2","f":1.735349927920582},"792-12":{"t":"Tier 4","f":2.7453235859703597},"792-13":{"t":"Tier 4","f":2.7453235859703597},"826-01":{"t":"Tier 4","f":4.027573125050443},"826-02":{"t":"Tier 4","f":3.356310937542036},"826-03":{"t":"Tier 4","f":2.68504875003363},"826-04":{"t":"Tier 4","f":2.68504875003363},"826-05":{"t":"Tier 4","f":2.0137865625252216},"826-06":{"t":"Tier 4","f":1.342524375016815},"826-07":{"t":"Tier 3","f":8.055146250100886},"826-08":{"t":"Tier 3","f":2.0137865625252216},"826-09":{"t":"Tier 4","f":2.68504875003363},"826-10":{"t":"Tier 4","f":1.9049332348211556},"826-11":{"t":"Tier 4","f":1.9049332348211556},"826-12":{"t":"Tier 4","f":2.0137865625252216},"826-13":{"t":"Tier 4","f":1.269955489880771},"826-14":{"t":"Tier 4","f":4.027573125050443},"826-15":{"t":"Tier 3","f":6.349777449403852},"826-16":{"t":"Tier 2","f":5.079821959523084},"840-01":{"t":"Tier 1","f":1.126730477366752},"840-02":{"t":"Tier 3","f":1.1176439412589552},"840-03":{"t":"Tier 3","f":0.6360575275457471},"840-04":{"t":"Tier 3","f":0.6724036719769326},"840-05":{"t":"Tier 1","f":0.9813458996420098},"840-07":{"t":"Tier 1","f":2.998556915572808},"840-08":{"t":"Tier 1","f":1.0086055079653986},"840-12":{"t":"Tier 3","f":0.8177882497016749},"840-14":{"t":"Tier 3","f":1.2206249999999998},"840-15":{"t":"Tier 1","f":2.944037698926029},"840-16":{"t":"Tier 1","f":1.590143818864368},"840-17":{"t":"Tier 2","f":1.499278457786404},"840-18":{"t":"Tier 4","f":1.1176439412589552},"840-19":{"t":"Tier 1","f":0.9813458996420098},"840-20":{"t":"Tier 1","f":4.034422031861594},"840-21":{"t":"Tier 4","f":1.4901919216786075},"840-22":{"t":"Tier 1","f":1.499278457786404},"840-24":{"t":"Tier 3","f":0.8450478580250638},"840-25":{"t":"Tier 3","f":2.7350473684467134},"840-26":{"t":"Tier 1","f":1.590143818864368},"840-28":{"t":"Tier 1","f":4.4978353733592105},"840-29":{"t":"Tier 1","f":3.180287637728736},"840-30":{"t":"Tier 4","f":2.81682619341688},"840-31":{"t":"Tier 1","f":1.590143818864368},"840-32":{"t":"Tier 2","f":2.2352878825179103},"840-33":{"t":"Tier 1","f":1.199422766229123},"840-34":{"t":"Tier 4","f":0.5997113831145615},"840-35":{"t":"Tier 1","f":0.899567074671842},"840-37":{"t":"Tier 1","f":1.4720188494630144},"840-38":{"t":"Tier 3","f":1.063124724612177},"840-39":{"t":"Tier 1","f":2.6896146879077305},"840-40":{"t":"Tier 2","f":2.998556915572808},"840-41":{"t":"Tier 3","f":1.2721150550914941},"840-42":{"t":"Tier 3","f":1.7718745410202958},"840-43":{"t":"Tier 2","f":1.3175477356304761},"840-44":{"t":"Tier 1","f":1.9081725826372407},"840-45":{"t":"Tier 3","f":1.8627399020982598},"840-46":{"t":"Tier 3","f":1.2721150550914941},"840-47":{"t":"Tier 4","f":1.126730477366752},"840-48":{"t":"Tier 4","f":1.499278457786404},"840-49":{"t":"Tier 4","f":1.925},"840-50":{"t":"Tier 3","f":0.5997113831145615},"840-52":{"t":"Tier 4","f":0.899567074671842},"840-54":{"t":"Tier 4","f":0.5997113831145615},"840-56":{"t":"Tier 1","f":4.4978353733592105},"840-58":{"t":"Tier 2","f":1.178916666666667},"840-59":{"t":"Tier 2","f":9.493750000000002},"840-60":{"t":"Tier 4","f":1.0036250000000002},"840-61":{"t":"Tier 1","f":1.5190000000000001},"840-62":{"t":"Tier 4","f":0.8951250000000002},"840-63":{"t":"Tier 4","f":0.6329166666666668},"840-64":{"t":"Tier 4","f":1.672708333333333},"840-65":{"t":"Tier 4","f":1.7150000000000003},"840-66":{"t":"Tier 1","f":1.323},"840-67":{"t":"Tier 4","f":1.7150000000000003},"840-68":{"t":"Tier 1","f":1.3623749999999997},"840-70":{"t":"Tier 3","f":1.6843749999999997},"840-71":{"t":"Tier 2","f":1.4802083333333331},"840-72":{"t":"Tier 4","f":0.8951250000000002},"840-73":{"t":"Tier 4","f":0.5967500000000001},"840-74":{"t":"#N/A","f":"#N/A"},"840-75":{"t":"#N/A","f":"#N/A"}},"baseline":{"840-14":{"is":"2025-10-13","ia":"2025-10-24","cp":"2025-12-10","pd":"2025-11-13"},"840-12":{"is":"2025-10-13","ia":"2025-10-24","cp":"2025-09-26","pd":"2025-11-24"},"840-28":{"is":null,"ia":null,"cp":"2025-12-16","pd":"2025-11-27"},"840-41":{"is":null,"ia":null,"cp":null,"pd":"2025-12-17"},"840-38":{"is":"2025-11-06","ia":"2025-11-19","cp":"2026-01-16","pd":"2025-12-18"},"840-02":{"is":"2025-10-08","ia":"2025-11-14","cp":"2025-12-16","pd":"2025-12-30"},"410-08":{"is":"2025-09-26","ia":"2025-10-28","cp":"2025-12-26","pd":"2026-01-14"},"410-05":{"is":"2025-10-01","ia":"2025-12-03","cp":"2025-12-31","pd":"2026-01-16"},"410-03":{"is":"2025-09-30","ia":"2025-12-02","cp":"2026-01-07","pd":"2026-01-19"},"410-06":{"is":"2025-10-02","ia":"2025-12-04","cp":"2026-01-02","pd":"2026-01-19"},"826-01":{"is":"2025-10-17","ia":"2025-12-16","cp":"2026-01-12","pd":"2026-01-20"},"036-01":{"is":"2025-09-24","ia":"2025-11-12","cp":"2025-12-17","pd":"2026-01-21"},"840-16":{"is":null,"ia":null,"cp":"2026-01-08","pd":"2026-01-21"},"840-36":{"is":"2025-12-08","ia":"2025-12-22","cp":"2026-03-12","pd":"2026-01-22"},"826-03":{"is":"2025-10-17","ia":"2025-12-16","cp":"2026-01-14","pd":"2026-01-22"},"826-02":{"is":"2025-10-17","ia":"2025-12-16","cp":"2026-01-16","pd":"2026-01-26"},"826-04":{"is":"2025-10-17","ia":"2025-12-16","cp":"2026-01-19","pd":"2026-01-27"},"826-05":{"is":"2025-10-17","ia":"2025-12-16","cp":"2026-01-20","pd":"2026-01-28"},"826-06":{"is":"2025-10-17","ia":"2025-12-16","cp":"2026-01-21","pd":"2026-01-29"},"036-04":{"is":"2025-09-24","ia":"2025-11-12","cp":"2026-01-14","pd":"2026-01-30"},"826-07":{"is":"2025-10-17","ia":"2025-12-16","cp":"2026-01-22","pd":"2026-01-30"},"826-08":{"is":"2025-10-17","ia":"2025-12-16","cp":"2026-01-23","pd":"2026-02-02"},"840-04":{"is":"2025-11-19","ia":"2025-12-03","cp":"2026-01-20","pd":"2026-02-03"},"826-09":{"is":"2025-10-17","ia":"2025-12-16","cp":"2026-01-26","pd":"2026-02-03"},"840-32":{"is":"2025-12-19","ia":"2025-12-29","cp":"2026-01-19","pd":"2026-02-04"},"826-10":{"is":"2025-10-17","ia":"2025-12-16","cp":"2026-01-28","pd":"2026-02-05"},"840-18":{"is":"2025-12-05","ia":"2025-12-12","cp":"2026-01-12","pd":"2026-02-06"},"840-25":{"is":"2025-11-10","ia":"2025-11-17","cp":"2026-01-12","pd":"2026-02-06"},"840-34":{"is":"2025-12-29","ia":null,"cp":"2026-04-21","pd":"2026-02-06"},"410-01":{"is":"2025-09-29","ia":"2025-12-01","cp":"2026-01-23","pd":"2026-02-09"},"410-02":{"is":"2025-09-29","ia":"2025-12-01","cp":"2026-02-02","pd":"2026-02-09"},"410-04":{"is":"2025-10-02","ia":"2025-12-04","cp":"2026-01-26","pd":"2026-02-09"},"826-11":{"is":"2025-10-17","ia":"2025-12-16","cp":"2026-01-30","pd":"2026-02-09"},"840-51":{"is":null,"ia":null,"cp":"2026-03-31","pd":"2026-02-09"},"410-07":{"is":"2025-10-01","ia":"2025-12-04","cp":"2026-01-27","pd":"2026-02-10"},"826-12":{"is":"2025-10-17","ia":"2025-12-16","cp":"2026-02-02","pd":"2026-02-10"},"840-26":{"is":null,"ia":null,"cp":null,"pd":"2026-02-11"},"826-13":{"is":"2025-10-17","ia":"2025-12-16","cp":"2026-02-04","pd":"2026-02-12"},"840-01":{"is":"2025-09-26","ia":"2026-01-27","cp":"2026-01-05","pd":"2026-02-13"},"792-02":{"is":"2025-09-19","ia":"2025-12-16","cp":"2026-01-05","pd":"2026-02-17"},"840-17":{"is":"2025-11-28","ia":"2026-01-09","cp":"2025-12-19","pd":"2026-02-18"},"840-40":{"is":"2025-12-15","ia":"2026-01-14","cp":"2026-01-20","pd":"2026-02-19"},"268-02":{"is":"2025-10-08","ia":"2025-11-07","cp":"2025-11-28","pd":"2026-02-25"},"840-42":{"is":"2025-12-17","ia":"2026-01-16","cp":"2026-01-12","pd":"2026-02-26"},"268-01":{"is":"2025-10-08","ia":"2025-11-07","cp":"2025-12-03","pd":"2026-02-27"},"268-03":{"is":"2025-10-08","ia":"2025-11-07","cp":"2025-12-11","pd":"2026-03-03"},"840-21":{"is":"2025-12-05","ia":"2025-12-12","cp":"2026-01-12","pd":"2026-03-03"},"268-04":{"is":"2025-10-08","ia":"2025-11-07","cp":"2025-12-22","pd":"2026-03-04"},"840-45":{"is":null,"ia":null,"cp":"2026-01-12","pd":"2026-03-04"},"840-20":{"is":"2026-02-13","ia":"2026-02-20","cp":"2026-02-20","pd":"2026-03-10"},"702-01":{"is":"2025-11-03","ia":"2026-01-16","cp":"2026-02-16","pd":"2026-03-11"},"702-02":{"is":"2025-11-03","ia":"2026-01-16","cp":"2026-02-16","pd":"2026-03-11"},"702-03":{"is":"2025-11-03","ia":"2026-01-16","cp":"2026-02-16","pd":"2026-03-11"},"840-08":{"is":"2025-12-19","ia":"2026-01-30","cp":"2026-02-20","pd":"2026-03-11"},"840-44":{"is":"2025-12-18","ia":"2026-02-05","cp":"2026-02-19","pd":"2026-03-17"},"792-05":{"is":"2025-09-19","ia":"2025-12-26","cp":"2026-03-06","pd":"2026-03-18"},"392-01":{"is":"2025-12-17","ia":"2026-01-26","cp":"2026-02-02","pd":"2026-03-20"},"792-10":{"is":"2025-09-19","ia":"2025-12-26","cp":"2026-03-06","pd":"2026-03-20"},"840-29":{"is":"2025-11-28","ia":"2026-02-23","cp":"2026-03-10","pd":"2026-03-20"},"056-01":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-02-05","pd":"2026-03-23"},"724-12":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-02-03","pd":"2026-03-23"},"056-06":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-02","pd":"2026-03-25"},"724-02":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-02-17","pd":"2026-03-25"},"792-04":{"is":"2025-09-19","ia":"2025-12-26","cp":"2026-03-13","pd":"2026-03-25"},"392-04":{"is":"2025-12-25","ia":"2026-01-23","cp":"2026-01-30","pd":"2026-03-26"},"792-03":{"is":"2025-09-19","ia":"2025-12-26","cp":"2026-03-16","pd":"2026-03-26"},"724-03":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-02-17","pd":"2026-03-27"},"276-01":{"is":"2025-09-19","ia":"2026-03-05","cp":null,"pd":"2026-03-30"},"724-07":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-02-10","pd":"2026-03-31"},"276-02":{"is":"2025-09-19","ia":"2026-03-05","cp":null,"pd":"2026-03-31"},"840-05":{"is":null,"ia":null,"cp":"2026-03-13","pd":"2026-04-01"},"392-15":{"is":"2025-12-26","ia":"2026-01-28","cp":"2026-02-04","pd":"2026-04-01"},"616-06":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-01-16","pd":"2026-04-01"},"276-03":{"is":"2025-09-19","ia":"2026-03-05","cp":null,"pd":"2026-04-01"},"724-09":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-02-13","pd":"2026-04-02"},"276-04":{"is":null,"ia":"2026-03-05","cp":null,"pd":"2026-04-02"},"792-11":{"is":"2025-09-19","ia":"2025-12-26","cp":"2026-03-16","pd":"2026-04-02"},"036-02":{"is":"2025-11-10","ia":"2026-01-15","cp":"2026-03-19","pd":"2026-04-03"},"036-05":{"is":"2025-11-10","ia":"2026-01-15","cp":"2026-03-19","pd":"2026-04-03"},"036-06":{"is":"2025-11-10","ia":"2026-01-15","cp":"2026-03-19","pd":"2026-04-03"},"724-01":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-12","pd":"2026-04-03"},"792-01":{"is":"2025-09-19","ia":"2025-12-26","cp":"2026-03-24","pd":"2026-04-03"},"276-05":{"is":"2025-09-19","ia":"2026-03-05","cp":null,"pd":"2026-04-03"},"276-06":{"is":"2025-09-19","ia":"2026-03-05","cp":null,"pd":"2026-04-03"},"056-05":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-23","pd":"2026-04-06"},"724-10":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-02-24","pd":"2026-04-06"},"840-39":{"is":"2025-11-12","ia":"2025-12-17","cp":"2026-03-04","pd":"2026-04-06"},"276-07":{"is":"2025-09-19","ia":"2026-03-05","cp":null,"pd":"2026-04-06"},"392-03":{"is":"2025-12-23","ia":"2026-02-03","cp":"2026-02-10","pd":"2026-04-07"},"724-04":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-13","pd":"2026-04-07"},"840-03":{"is":null,"ia":null,"cp":"2026-03-23","pd":"2026-04-08"},"724-06":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-16","pd":"2026-04-09"},"276-08":{"is":"2025-10-20","ia":"2026-03-05","cp":null,"pd":"2026-04-09"},"036-03":{"is":null,"ia":null,"cp":"2026-03-26","pd":"2026-04-10"},"036-07":{"is":"2025-11-10","ia":"2026-01-15","cp":null,"pd":"2026-04-10"},"840-46":{"is":"2025-11-19","ia":"2026-02-27","cp":"2026-03-26","pd":"2026-04-10"},"276-10":{"is":"2025-10-20","ia":"2026-03-05","cp":null,"pd":"2026-04-10"},"276-11":{"is":"2025-10-20","ia":"2026-03-05","cp":null,"pd":"2026-04-13"},"276-12":{"is":"2025-10-20","ia":"2026-03-05","cp":null,"pd":"2026-04-13"},"840-31":{"is":null,"ia":null,"cp":"2026-03-24","pd":"2026-04-14"},"392-13":{"is":"2026-01-23","ia":"2026-02-10","cp":"2026-02-18","pd":"2026-04-14"},"616-04":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-31","pd":"2026-04-14"},"724-11":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-27","pd":"2026-04-14"},"250-01":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-03","pd":"2026-04-15"},"250-05":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-02-26","pd":"2026-04-15"},"392-12":{"is":"2026-01-19","ia":"2026-02-12","cp":"2026-02-19","pd":"2026-04-15"},"528-03":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-02-20","pd":"2026-04-15"},"724-05":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-30","pd":"2026-04-15"},"840-48":{"is":null,"ia":null,"cp":"2026-03-31","pd":"2026-04-15"},"840-50":{"is":"2025-11-04","ia":"2025-11-11","cp":"2026-03-31","pd":"2026-04-15"},"840-53":{"is":"2025-11-07","ia":"2025-11-14","cp":"2026-03-31","pd":"2026-04-15"},"840-54":{"is":"2025-11-04","ia":"2025-11-11","cp":"2026-03-31","pd":"2026-04-15"},"056-02":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-04-03","pd":"2026-04-16"},"250-04":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-02-25","pd":"2026-04-16"},"840-13":{"is":null,"ia":null,"cp":"2026-03-31","pd":"2026-04-16"},"056-03":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-04-06","pd":"2026-04-17"},"528-04":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-02-20","pd":"2026-04-17"},"724-08":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-04-01","pd":"2026-04-17"},"276-13":{"is":"2025-10-20","ia":"2026-03-05","cp":null,"pd":"2026-04-17"},"276-14":{"is":"2025-10-20","ia":"2026-03-05","cp":null,"pd":"2026-04-17"},"250-08":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-05","pd":"2026-04-20"},"250-02":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-02-26","pd":"2026-04-21"},"250-11":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-04","pd":"2026-04-21"},"392-08":{"is":"2026-01-20","ia":"2026-02-18","cp":"2026-02-26","pd":"2026-04-21"},"528-05":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-06","pd":"2026-04-21"},"840-52":{"is":null,"ia":null,"cp":"2026-03-31","pd":"2026-04-21"},"076-10":{"is":"2025-10-27","ia":"2026-03-09","cp":"2026-05-27","pd":"2026-04-22"},"250-07":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-16","pd":"2026-04-22"},"392-06":{"is":"2026-01-23","ia":"2026-02-24","cp":"2026-03-03","pd":"2026-04-24"},"840-07":{"is":null,"ia":null,"cp":"2026-03-26","pd":"2026-04-24"},"840-22":{"is":null,"ia":null,"cp":"2026-04-08","pd":"2026-04-24"},"840-35":{"is":"2026-03-02","ia":"2026-03-18","cp":"2026-02-12","pd":"2026-04-24"},"380-03":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-04-10","pd":"2026-04-27"},"840-33":{"is":"2025-12-29","ia":null,"cp":"2026-04-07","pd":"2026-04-28"},"250-03":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-13","pd":"2026-04-28"},"250-06":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-23","pd":"2026-04-28"},"250-09":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-10","pd":"2026-04-28"},"528-01":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-03-20","pd":"2026-04-28"},"792-06":{"is":"2025-09-19","ia":"2025-12-26","cp":"2026-04-14","pd":"2026-04-28"},"203-02":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-04-06","pd":"2026-04-29"},"380-05":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-04-10","pd":"2026-04-29"},"203-03":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-04-06","pd":"2026-04-30"},"250-10":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-02-25","pd":"2026-04-30"},"380-09":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-04-15","pd":"2026-05-01"},"792-07":{"is":"2025-09-19","ia":"2025-12-26","cp":"2026-04-21","pd":"2026-05-01"},"840-30":{"is":"2026-02-10","ia":"2026-03-24","cp":"2026-05-27","pd":"2026-05-04"},"392-10":{"is":"2026-02-03","ia":"2026-03-05","cp":"2026-03-12","pd":"2026-05-05"},"616-03":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-04-24","pd":"2026-05-08"},"392-11":{"is":"2026-02-10","ia":"2026-03-10","cp":"2026-03-17","pd":"2026-05-11"},"156-01":{"is":null,"ia":null,"cp":null,"pd":"2026-05-14"},"156-07":{"is":null,"ia":null,"cp":null,"pd":"2026-05-14"},"156-12":{"is":null,"ia":null,"cp":null,"pd":"2026-05-14"},"156-14":{"is":null,"ia":null,"cp":null,"pd":"2026-05-14"},"156-02":{"is":null,"ia":null,"cp":null,"pd":"2026-05-14"},"156-03":{"is":null,"ia":null,"cp":null,"pd":"2026-05-14"},"156-04":{"is":null,"ia":null,"cp":null,"pd":"2026-05-14"},"156-05":{"is":null,"ia":null,"cp":null,"pd":"2026-05-14"},"156-06":{"is":null,"ia":null,"cp":null,"pd":"2026-05-14"},"156-08":{"is":null,"ia":null,"cp":null,"pd":"2026-05-14"},"156-09":{"is":null,"ia":null,"cp":null,"pd":"2026-05-14"},"156-10":{"is":null,"ia":null,"cp":null,"pd":"2026-05-14"},"156-11":{"is":null,"ia":null,"cp":null,"pd":"2026-05-14"},"156-13":{"is":null,"ia":null,"cp":null,"pd":"2026-05-14"},"616-07":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-04-30","pd":"2026-05-14"},"380-02":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-05-04","pd":"2026-05-15"},"840-24":{"is":"2026-02-23","ia":"2026-04-06","cp":"2026-03-20","pd":"2026-05-15"},"380-10":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-05-06","pd":"2026-05-19"},"840-47":{"is":null,"ia":null,"cp":"2026-04-08","pd":"2026-05-20"},"528-02":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-04-24","pd":"2026-05-20"},"616-05":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-05-08","pd":"2026-05-22"},"792-09":{"is":"2025-09-19","ia":"2025-12-26","cp":"2026-05-08","pd":"2026-05-22"},"392-02":{"is":"2026-02-20","ia":"2026-03-16","cp":"2026-05-24","pd":"2026-05-25"},"484-05":{"is":"2025-10-02","ia":"2025-11-10","cp":"2025-10-15","pd":"2026-05-27"},"484-01":{"is":"2025-10-02","ia":"2025-11-10","cp":"2025-10-20","pd":"2026-05-27"},"380-01":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-05-20","pd":"2026-06-02"},"203-05":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-05-11","pd":"2026-06-03"},"056-04":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-05-22","pd":"2026-06-04"},"392-09":{"is":"2026-03-06","ia":"2026-04-01","cp":"2026-04-08","pd":"2026-06-04"},"392-05":{"is":"2026-03-05","ia":"2026-03-27","cp":"2026-04-03","pd":"2026-06-05"},"840-55":{"is":null,"ia":"2026-04-24","cp":null,"pd":"2026-06-06"},"076-01":{"is":"2026-04-06","ia":"2026-05-21","cp":"2026-03-27","pd":"2026-06-08"},"203-01":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-05-14","pd":"2026-06-08"},"076-09":{"is":"2026-04-07","ia":"2026-05-22","cp":"2026-03-27","pd":"2026-06-09"},"203-04":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-05-15","pd":"2026-06-09"},"032-08":{"is":"2025-10-16","ia":"2025-12-16","cp":"2026-01-19","pd":"2026-06-10"},"076-02":{"is":"2026-04-08","ia":"2026-06-08","cp":"2026-05-27","pd":"2026-06-15"},"484-02":{"is":"2025-10-02","ia":"2025-11-10","cp":"2025-10-20","pd":"2026-06-16"},"076-03":{"is":"2026-04-09","ia":"2026-05-29","cp":"2026-04-27","pd":"2026-06-16"},"392-07":{"is":"2026-03-11","ia":"2026-04-15","cp":"2026-04-22","pd":"2026-06-18"},"392-14":{"is":"2026-03-11","ia":"2026-04-15","cp":"2026-04-22","pd":"2026-06-18"},"076-05":{"is":"2026-04-14","ia":"2026-06-03","cp":"2026-04-27","pd":"2026-06-19"},"076-07":{"is":"2026-04-10","ia":"2026-06-04","cp":"2026-04-27","pd":"2026-06-22"},"484-06":{"is":"2025-10-02","ia":"2025-11-10","cp":"2025-12-08","pd":"2026-06-23"},"840-23":{"is":null,"ia":null,"cp":"2026-06-09","pd":"2026-06-23"},"076-08":{"is":"2026-04-13","ia":"2026-06-08","cp":"2026-03-27","pd":"2026-06-24"},"380-06":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-06-12","pd":"2026-06-25"},"484-04":{"is":"2025-10-02","ia":"2025-11-10","cp":"2025-12-15","pd":"2026-06-30"},"076-04":{"is":"2026-04-15","ia":"2026-06-15","cp":"2026-05-27","pd":"2026-07-01"},"076-06":{"is":"2026-04-16","ia":"2026-06-15","cp":"2026-05-27","pd":"2026-07-02"},"840-43":{"is":"2026-04-22","ia":"2026-05-26","cp":null,"pd":"2026-07-06"},"032-06":{"is":"2025-10-20","ia":"2025-12-16","cp":"2026-01-28","pd":"2026-07-18"},"840-19":{"is":"2026-03-19","ia":"2026-04-30","cp":"2026-07-08","pd":"2026-07-21"},"032-01":{"is":"2025-10-24","ia":"2025-11-28","cp":null,"pd":"2026-07-25"},"380-07":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-07-14","pd":"2026-07-27"},"032-02":{"is":"2025-10-23","ia":"2025-11-28","cp":"2025-11-06","pd":"2026-07-28"},"032-03":{"is":"2025-10-27","ia":"2026-02-17","cp":"2026-01-28","pd":"2026-07-31"},"124-01":{"is":"2026-06-02","ia":"2026-06-09","cp":"2026-07-16","pd":"2026-07-31"},"380-08":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-07-20","pd":"2026-07-31"},"840-15":{"is":"2026-03-13","ia":"2026-04-13","cp":"2026-07-15","pd":"2026-08-05"},"032-04":{"is":"2025-10-22","ia":"2025-12-15","cp":"2026-01-14","pd":"2026-08-11"},"032-05":{"is":"2025-10-30","ia":"2025-12-15","cp":"2026-02-05","pd":"2026-08-12"},"840-37":{"is":"2026-04-10","ia":"2026-07-01","cp":"2026-02-18","pd":"2026-08-12"},"032-09":{"is":"2025-11-04","ia":"2026-01-15","cp":"2026-02-05","pd":"2026-08-20"},"124-04":{"is":"2026-01-14","ia":"2026-07-17","cp":"2026-08-10","pd":"2026-08-25"},"032-07":{"is":"2025-11-05","ia":"2026-01-13","cp":"2026-01-14","pd":"2026-08-26"},"124-03":{"is":"2025-11-21","ia":"2026-06-09","cp":"2026-08-14","pd":"2026-08-31"},"484-03":{"is":"2025-10-02","ia":"2025-11-10","cp":"2025-11-27","pd":"2026-09-01"},"616-08":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-08-31","pd":"2026-09-14"},"380-04":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-09-08","pd":"2026-09-21"},"124-02":{"is":"2025-11-25","ia":"2026-05-19","cp":"2026-09-21","pd":"2026-10-06"},"840-27":{"is":"2026-07-31","ia":"2026-09-11","cp":null,"pd":"2026-10-21"},"616-02":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-10-30","pd":"2026-11-13"},"616-01":{"is":"2025-10-20","ia":"2026-03-05","cp":"2026-11-30","pd":"2026-12-14"},"124-05":{"is":null,"ia":null,"cp":"2026-06-19","pd":null},"392-16":{"is":null,"ia":null,"cp":null,"pd":null},"392-17":{"is":null,"ia":null,"cp":null,"pd":null},"792-12":{"is":"2025-09-19","ia":"2025-12-26","cp":null,"pd":null},"840-49":{"is":null,"ia":null,"cp":"2026-03-31","pd":null},"840-56":{"is":null,"ia":null,"cp":null,"pd":null}}};
+
+const REGIONS = REF_DATA.regions;
+const TIERS = REF_DATA.tiers;
+const BASELINE = REF_DATA.baseline;
+
+// ═══════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════
+let ssuFile = null, prevFile = null, outputBlob = null, outputName = '';
+
+// ═══════════════════════════════════════════════════════════════════
+// UI WIRING
+// ═══════════════════════════════════════════════════════════════════
+const $log = document.getElementById('mrb-log');
+const $summary = document.getElementById('mrb-summary');
+
+function mrbSetupUpload(zoneId, fileId, fnameId, onFile) {
+  const zone = document.getElementById(zoneId);
+  const input = document.getElementById(fileId);
+  const fname = document.getElementById(fnameId);
+  input.addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (f) { onFile(f); fname.textContent = f.name; zone.classList.add('has-file'); }
+  });
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f) { onFile(f); fname.textContent = f.name; zone.classList.add('has-file'); input.files = e.dataTransfer.files; }
+  });
+}
+
+function mrbCheckReady() {
+  document.getElementById('mrb-btn-generate').disabled = !(ssuFile && prevFile);
+}
+
+mrbSetupUpload('mrb-dz-ssu', 'mrb-fi-ssu', 'mrb-fname-ssu', f => { ssuFile = f; mrbCheckReady(); });
+mrbSetupUpload('mrb-dz-prev', 'mrb-fi-prev', 'mrb-fname-prev', f => { prevFile = f; mrbCheckReady(); });
+
+document.getElementById('mrb-btn-generate').addEventListener('click', runGenerate);
+document.getElementById('mrb-btn-download').addEventListener('click', () => {
+  if (!outputBlob) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(outputBlob);
+  a.download = outputName;
+  a.click();
+});
+
+function mrbLog(msg, cls='') {
+  $log.classList.add('visible');
+  const span = document.createElement('span');
+  span.className = cls;
+  span.textContent = msg + '\n';
+  $log.appendChild(span);
+  $log.scrollTop = $log.scrollHeight;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════
+
+function toDate(val) {
+  if (val == null) return null;
+  if (typeof val === 'number') {
+    // Excel serial date
+    if (val === 0 || isNaN(val)) return null;
+    const d = XLSX.SSF.parse_date_code(val);
+    if (!d) return null;
+    return new Date(d.y, d.m - 1, d.d);
+  }
+  if (val instanceof Date) {
+    return isNaN(val.getTime()) ? null : val;
+  }
+  if (typeof val === 'string') {
+    let s = val.replace(/\u3000/g, '').replace(/\u00A0/g, '').trim();
+    if (!s || s.toUpperCase() === 'TBD') return null;
+    // Try YYYY-MM-DD
+    let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    // Try d-Mon-yy or d-Mon-yyyy
+    m = s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})$/);
+    if (m) {
+      const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+      const mon = months[m[2].toLowerCase()];
+      if (mon !== undefined) {
+        let yr = +m[3]; if (yr < 100) yr += 2000;
+        return new Date(yr, mon, +m[1]);
+      }
+    }
+    // Try MM/DD/YYYY
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return new Date(+m[3], +m[1] - 1, +m[2]);
+  }
+  return null;
+}
+
+function isBlank(val) {
+  if (val == null) return true;
+  if (typeof val === 'string') {
+    const s = val.replace(/\u3000/g, '').replace(/\u00A0/g, '').trim();
+    return s === '' || s === '0';
+  }
+  if (typeof val === 'number') return isNaN(val) || val === 0;
+  return false;
+}
+
+function isTBD(val) {
+  if (val == null) return false;
+  if (typeof val === 'string' && val.trim().toUpperCase() === 'TBD') return true;
+  return false;
+}
+
+function dateDiffDays(a, b) {
+  // a - b in days
+  return Math.round((a.getTime() - b.getTime()) / 86400000);
+}
+
+function fmtDateISO(d) {
+  if (!d) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function fmtDateShort(d) {
+  if (!d) return '';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${d.getDate()}-${months[d.getMonth()]}-${String(d.getFullYear()).slice(2)}`;
+}
+
+function fmtDateMMDDYYYY(d) {
+  return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
+}
+
+function getRegion(country) {
+  if (!country) return '';
+  return REGIONS[country.trim()] || '';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ESCALATION LOGIC
+// ═══════════════════════════════════════════════════════════════════
+
+function getIRBSubDates(row, region) {
+  const r = (region || '').toUpperCase();
+  let planned, actual;
+  if (r === 'EU') {
+    planned = row['EU CTR Part II Submission (Planned)'];
+    actual = row['EU CTR Part II Submission (Actual)'];
+  } else if (r === 'US') {
+    planned = row['Site IRB/IEC Submission (Planned)'];
+    actual = row['Site IRB/IEC Submission (Actual)'];
+  } else {
+    planned = row['Site IRB/IEC Submission (Planned)'];
+    actual = row['Site IRB/IEC Submission (Actual)'];
+    if (isBlank(planned) && !isTBD(planned)) {
+      planned = row['Country IRB/IEC Submission (Planned)'];
+    }
+    if (isBlank(actual)) {
+      actual = row['Country IRB/IEC Submission (Actual)'];
+    }
+  }
+  return [toDate(planned), toDate(actual)];
+}
+
+function getIRBApprDates(row, region) {
+  const r = (region || '').toUpperCase();
+  let planned, actual;
+  if (r === 'EU') {
+    planned = row['EU CTR Part II Approval (Planned)'];
+    actual = row['EU CTR Part II Approval (Actual)'];
+  } else if (r === 'US') {
+    planned = row['Site IRB/IEC Approval (Planned)'];
+    actual = row['Site IRB/IEC Approval (Actual)'];
+  } else {
+    planned = row['Site IRB/IEC Approval (Planned)'];
+    actual = row['Site IRB/IEC Approval (Actual)'];
+    if (isBlank(planned) && !isTBD(planned)) {
+      planned = row['Country IRB/IEC Approval (Planned)'];
+    }
+    if (isBlank(actual)) {
+      actual = row['Country IRB/IEC Approval (Actual)'];
+    }
+  }
+  return [toDate(planned), toDate(actual)];
+}
+
+function getContractDates(row) {
+  return [toDate(row['Contract Planned']), toDate(row['Contract Actual'])];
+}
+
+function escalationStatus(planned, actual, today, useGt) {
+  if (actual && dateDiffDays(actual, today) <= 0) return 'Complete';
+  if (!planned) return 'TBD';
+  const diff = dateDiffDays(today, planned);
+  if (useGt) { if (diff > 1) return 'Action Zone'; }
+  else { if (diff >= 1) return 'Action Zone'; }
+  if (dateDiffDays(planned, today) >= 0 && dateDiffDays(planned, today) <= 14) return 'Watch Zone';
+  return 'On Track';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CHANGE DESCRIPTION LOGIC
+// ═══════════════════════════════════════════════════════════════════
+
+function changeDescription(prevRaw, currRaw) {
+  const prevIsTBD = isTBD(prevRaw);
+  const currIsTBD = isTBD(currRaw);
+  const prevBlank = isBlank(prevRaw) && !prevIsTBD;
+  const currBlank = isBlank(currRaw) && !currIsTBD;
+
+  const prevDate = toDate(prevRaw);
+  const currDate = toDate(currRaw);
+
+  if (prevBlank && currBlank) return 'No change';
+  if (currIsTBD && prevDate === null) return 'TBD';
+  if (prevDate === null && currDate !== null) return 'Date Added';
+  if (prevDate !== null && currDate === null) return 'Date Removed';
+  if (prevDate !== null && currDate !== null) {
+    if (fmtDateISO(prevDate) === fmtDateISO(currDate)) return 'No change';
+    if (currDate > prevDate) return `Increased: from ${fmtDateShort(prevDate)} to ${fmtDateShort(currDate)}`;
+    return `Decreased: from ${fmtDateShort(prevDate)} to ${fmtDateShort(currDate)}`;
+  }
+  return 'No change';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PARSE INPUTS
+// ═══════════════════════════════════════════════════════════════════
+
+function mrbReadFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function parseSSU(wb) {
+  const sheetName = wb.SheetNames[0];
+  const sheet = wb.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(sheet, { defval: null, raw: true });
+  const sites = {};
+  for (const row of rows) {
+    const sn = String(row['Site No'] || '').trim();
+    if (!sn) continue;
+    sites[sn] = row;
+  }
+  return sites;
+}
+
+function parsePrevReport(wb) {
+  const sheet = wb.Sheets['Weekly Report'];
+  if (!sheet) throw new Error('Previous report is missing "Weekly Report" sheet');
+  // Header at row 5 (0-indexed row 4), data starts row 6
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null, raw: true });
+  // Find header row (row index 4)
+  const headerRow = rows[4];
+  if (!headerRow) throw new Error('Cannot find header row at row 5 in Weekly Report');
+  const colMap = {};
+  for (let i = 0; i < headerRow.length; i++) {
+    if (headerRow[i]) colMap[String(headerRow[i]).trim()] = i;
+  }
+  const sites = {};
+  for (let r = 5; r < rows.length; r++) {
+    const row = rows[r];
+    if (!row) continue;
+    const sn = String(row[colMap['Site No']] || '').trim();
+    if (!sn) continue;
+    sites[sn] = {
+      irb_sub_planned: row[colMap['Initial IRB/EC Submission Planned Date']] ?? null,
+      irb_appr_planned: row[colMap['Initial IRB/EC Approval Planned Date']] ?? null,
+      contract_planned: row[colMap['Contract Executed Planned Date']] ?? null,
+      pad: row[colMap['Planned Site Activation Date']] ?? null,
+    };
+  }
+  return sites;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BUILD WEEKLY REPORT
+// ═══════════════════════════════════════════════════════════════════
+
+function buildWeeklyReport(ssuSites, today) {
+  const rows = [];
+  const sortedKeys = Object.keys(ssuSites).sort();
+  for (const sn of sortedKeys) {
+    const ssu = ssuSites[sn];
+    const country = String(ssu['Country'] || '').trim();
+    const region = getRegion(country);
+
+    let tier = (TIERS[sn] || {}).t || 'TBD';
+    if (tier === '#N/A' || tier === '' || tier == null) tier = 'TBD';
+
+    const pad = toDate(ssu['Planned Site Activation Date']);
+    const actualActivation = toDate(ssu['Actual Site Activation Date']);
+    let daysUntil;
+    if (actualActivation) daysUntil = 'Complete';
+    else if (pad) daysUntil = dateDiffDays(pad, today);
+    else daysUntil = 'TBD';
+
+    const [irbSubP, irbSubA] = getIRBSubDates(ssu, region);
+    const irbSubStatus = escalationStatus(irbSubP, irbSubA, today, true);
+
+    const [irbApprP, irbApprA] = getIRBApprDates(ssu, region);
+    const irbApprStatus = escalationStatus(irbApprP, irbApprA, today, false);
+
+    const [contractP, contractA] = getContractDates(ssu);
+    const contractStatus = escalationStatus(contractP, contractA, today, false);
+
+    rows.push({
+      site_no: sn,
+      country,
+      institution: String(ssu['Institution'] || '').trim(),
+      pi_name: String(ssu['PI Name'] || '').trim(),
+      tier,
+      pad,
+      days_until: daysUntil,
+      irb_sub_status: irbSubStatus,
+      irb_appr_status: irbApprStatus,
+      contract_status: contractStatus,
+      irb_sub_planned: irbSubP,
+      irb_appr_planned: irbApprP,
+      contract_planned: contractP,
+    });
+  }
+  return rows;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BUILD WEEKLY AUDIT
+// ═══════════════════════════════════════════════════════════════════
+
+function buildWeeklyAudit(ssuSites, prevSites, currReportRows) {
+  const allSitesSet = new Set([...Object.keys(BASELINE), ...Object.keys(ssuSites)]);
+  const allSites = Array.from(allSitesSet).sort();
+
+  const currLookup = {};
+  for (const r of currReportRows) currLookup[r.site_no] = r;
+
+  const rows = [];
+  for (const sn of allSites) {
+    const inSSU = sn in ssuSites;
+    const ssu = ssuSites[sn] || {};
+
+    let country, institution, pi_name;
+    if (inSSU) {
+      country = String(ssu['Country'] || '').trim();
+      institution = String(ssu['Institution'] || '').trim();
+      pi_name = String(ssu['PI Name'] || '').trim();
+    } else {
+      country = 'Site Removed';
+      institution = 'Site Removed';
+      pi_name = 'Site Removed';
+    }
+
+    const bl = BASELINE[sn] || {};
+    const prev = prevSites[sn] || {};
+    const inPrev = sn in prevSites;
+    const curr = currLookup[sn] || {};
+
+    const currIRBSub = curr.irb_sub_planned || null;
+    const currIRBAppr = curr.irb_appr_planned || null;
+    const currContract = curr.contract_planned || null;
+    const currPAD = curr.pad || null;
+
+    // Previous values: if site is in current SSU but missing from prev report, default to "TBD"
+    const prevDefault = (inSSU && !inPrev) ? 'TBD' : null;
+    const prevIRBSub = prev.irb_sub_planned ?? prevDefault;
+    const prevIRBAppr = prev.irb_appr_planned ?? prevDefault;
+    const prevContract = prev.contract_planned ?? prevDefault;
+    const prevPAD = prev.pad ?? prevDefault;
+
+    let currIRBSubRaw, currIRBApprRaw, currContractRaw, currPADRaw;
+    if (inSSU) {
+      currIRBSubRaw = currIRBSub !== null ? currIRBSub : 'TBD';
+      currIRBApprRaw = currIRBAppr !== null ? currIRBAppr : 'TBD';
+      currContractRaw = currContract !== null ? currContract : 'TBD';
+      currPADRaw = currPAD !== null ? currPAD : 'TBD';
+    } else {
+      currIRBSubRaw = null;
+      currIRBApprRaw = null;
+      currContractRaw = null;
+      currPADRaw = null;
+    }
+
+    rows.push({
+      site_no: sn, country, institution, pi_name,
+      bl_irb_sub: toDate(bl.is),
+      prev_irb_sub: prevIRBSub,
+      curr_irb_sub: currIRBSubRaw,
+      chg_irb_sub: changeDescription(prevIRBSub, currIRBSubRaw),
+      bl_irb_appr: toDate(bl.ia),
+      prev_irb_appr: prevIRBAppr,
+      curr_irb_appr: currIRBApprRaw,
+      chg_irb_appr: changeDescription(prevIRBAppr, currIRBApprRaw),
+      bl_contract: toDate(bl.cp),
+      prev_contract: prevContract,
+      curr_contract: currContractRaw,
+      chg_contract: changeDescription(prevContract, currContractRaw),
+      bl_pad: toDate(bl.pd),
+      prev_pad: prevPAD,
+      curr_pad: currPADRaw,
+      chg_pad: changeDescription(prevPAD, currPADRaw),
+    });
+  }
+  return rows;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// WRITE OUTPUT
+// ═══════════════════════════════════════════════════════════════════
+
+function cellDate(d) {
+  if (d == null) return null;
+  if (d instanceof Date) return fmtDateISO(d);
+  if (typeof d === 'number') {
+    // Excel serial number
+    const parsed = toDate(d);
+    return parsed ? fmtDateISO(parsed) : null;
+  }
+  if (typeof d === 'string') {
+    if (d.trim().toUpperCase() === 'TBD') return 'TBD';
+    const parsed = toDate(d);
+    return parsed ? fmtDateISO(parsed) : d;
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STYLED OUTPUT (ExcelJS)
+// ═══════════════════════════════════════════════════════════════════
+
+const EJ_COLORS = {
+  headerBg: '005A64',       // Teal - title, headers, group headers
+  headerFont: 'FFFFFF',     // White text on headers
+  metadataBg: 'CCE8EB',     // Light teal for metadata rows
+  // Weekly Report conditional
+  actionZoneBg: 'FFCCCC',   // Light red bg
+  actionZoneFont: 'C00000', // Dark red font
+  watchZoneBg: 'FFEB9C',    // Light amber bg
+  watchZoneFont: '9C5700',  // Dark amber font
+  completeBg: 'C6EFCE',     // Light green bg
+  completeFont: '006100',   // Dark green font
+  tbd: 'D9D9D9',            // Gray
+  // Weekly Audit change descriptions (font color based)
+  chgIncreasedBg: 'FFCCCC', // Light red bg
+  chgIncreasedFont: '9C0006',// Dark red font
+  chgDecreasedBg: 'C6EFCE', // Light green bg
+  chgDecreasedFont: '006100',// Dark green font
+  chgDateAddedFont: '006100',// Dark green
+  chgDateRemovedFont: '9C0006',// Dark red
+  chgTBDBg: 'D9D9D9',       // Gray
+};
+
+function ejFill(color) {
+  return { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + color } };
+}
+function ejBorder() {
+  const side = { style: 'thin', color: { argb: 'FFD0D0D0' } };
+  return { top: side, bottom: side, left: side, right: side };
+}
+
+function statusFill(status) {
+  if (status === 'Action Zone') return { fill: ejFill(EJ_COLORS.actionZoneBg), font: { color: { argb: 'FF' + EJ_COLORS.actionZoneFont } } };
+  if (status === 'Watch Zone') return { fill: ejFill(EJ_COLORS.watchZoneBg), font: { color: { argb: 'FF' + EJ_COLORS.watchZoneFont } } };
+  if (status === 'Complete') return { fill: ejFill(EJ_COLORS.completeBg), font: { color: { argb: 'FF' + EJ_COLORS.completeFont } } };
+  if (status === 'TBD') return { fill: ejFill(EJ_COLORS.tbd), font: null };
+  return null;
+}
+
+function changeFill(chg) {
+  if (!chg) return null;
+  if (chg.startsWith('Increased')) return { fill: ejFill(EJ_COLORS.chgIncreasedBg), font: { color: { argb: 'FF' + EJ_COLORS.chgIncreasedFont } } };
+  if (chg.startsWith('Decreased')) return { fill: ejFill(EJ_COLORS.chgDecreasedBg), font: { color: { argb: 'FF' + EJ_COLORS.chgDecreasedFont } } };
+  if (chg === 'Date Added') return { fill: ejFill(EJ_COLORS.chgDecreasedBg), font: { color: { argb: 'FF' + EJ_COLORS.chgDateAddedFont } } };
+  if (chg === 'Date Removed') return { fill: ejFill(EJ_COLORS.chgIncreasedBg), font: { color: { argb: 'FF' + EJ_COLORS.chgDateRemovedFont } } };
+  if (chg === 'TBD') return { fill: ejFill(EJ_COLORS.chgTBDBg), font: null };
+  return null;
+}
+
+async function writeOutput(reportRows, auditRows, ssuSource, prevSource, today) {
+  const wb = new ExcelJS.Workbook();
+
+  // ════════════════════════════════════════════════════════════════
+  // WEEKLY REPORT
+  // ════════════════════════════════════════════════════════════════
+  const ws = wb.addWorksheet('Weekly Report');
+
+  // Column widths
+  ws.columns = [
+    { width: 10 },  // A: Site No
+    { width: 20 },  // B: Country
+    { width: 45 },  // C: Institution
+    { width: 28 },  // D: PI Name
+    { width: 8 },   // E: Tier
+    { width: 22 },  // F: PAD
+    { width: 16 },  // G: Days Until
+    { width: 22 },  // H: IRB Sub Status
+    { width: 22 },  // I: IRB Appr Status
+    { width: 22 },  // J: Contract Status
+    { width: 22 },  // K: IRB Sub Planned
+    { width: 22 },  // L: IRB Appr Planned
+    { width: 22 },  // M: Contract Planned
+  ];
+
+  // Metadata rows
+  const r1 = ws.getRow(1);
+  r1.getCell(1).value = 'BNT327-05 Site Activation Monitoring Report';
+  r1.getCell(1).font = { bold: true, size: 16, color: { argb: 'FF' + EJ_COLORS.headerFont } };
+  r1.getCell(1).fill = ejFill(EJ_COLORS.headerBg);
+  for (let c = 2; c <= 13; c++) r1.getCell(c).fill = ejFill(EJ_COLORS.headerBg);
+  ws.mergeCells(1, 1, 1, 13);
+  
+  const r2 = ws.getRow(2);
+  r2.getCell(1).value = `Last Updated: ${fmtDateMMDDYYYY(today)}`;
+  for (let c = 1; c <= 13; c++) r2.getCell(c).fill = ejFill('F2CEEF');
+  ws.mergeCells(2, 1, 2, 13);
+  
+  const r3 = ws.getRow(3);
+  r3.getCell(1).value = `Source: ${ssuSource}`;
+  for (let c = 1; c <= 13; c++) r3.getCell(c).fill = ejFill('F2CEEF');
+  ws.mergeCells(3, 1, 3, 13);
+
+  // Header row (row 5)
+  const reportHeaders = [
+    'Site No', 'Country', 'Institution', 'PI Name', 'Tier',
+    'Planned Site Activation Date', 'Days Until Planned Activation Date',
+    'IRB Submission Escalation and Watch Zone Sites',
+    'IRB Approval Escalation and Watch Zone Sites',
+    'Contract Executed Escalation and Watch Zone Sites',
+    'Initial IRB/EC Submission Planned Date',
+    'Initial IRB/EC Approval Planned Date',
+    'Contract Executed Planned Date',
+  ];
+  const hdrRow = ws.getRow(5);
+  reportHeaders.forEach((h, i) => {
+    const cell = hdrRow.getCell(i + 1);
+    cell.value = h;
+    cell.font = { bold: true, color: { argb: 'FF' + EJ_COLORS.headerFont }, size: 10 };
+    cell.fill = ejFill(EJ_COLORS.headerBg);
+    cell.alignment = { wrapText: true, vertical: 'middle' };
+    cell.border = ejBorder();
+  });
+  hdrRow.height = 36;
+
+  // Auto-filter
+  ws.autoFilter = { from: 'A5', to: 'M5' };
+
+  // Data rows
+  for (let i = 0; i < reportRows.length; i++) {
+    const r = reportRows[i];
+    const row = ws.getRow(i + 6);
+    const padVal = r.pad ? fmtDateISO(r.pad) : 'TBD';
+    const irbSubVal = r.irb_sub_planned ? fmtDateISO(r.irb_sub_planned) : 'TBD';
+    const irbApprVal = r.irb_appr_planned ? fmtDateISO(r.irb_appr_planned) : 'TBD';
+    const contractVal = r.contract_planned ? fmtDateISO(r.contract_planned) : 'TBD';
+    const daysVal = typeof r.days_until === 'number' ? r.days_until : r.days_until;
+
+    const vals = [
+      r.site_no, r.country, r.institution, r.pi_name, r.tier,
+      padVal, daysVal,
+      r.irb_sub_status, r.irb_appr_status, r.contract_status,
+      irbSubVal, irbApprVal, contractVal,
+    ];
+
+    vals.forEach((v, ci) => {
+      const cell = row.getCell(ci + 1);
+      cell.value = v;
+      cell.border = ejBorder();
+      cell.alignment = { vertical: 'middle' };
+    });
+
+    // Conditional fills for escalation columns (H=8, I=9, J=10)
+    for (const ci of [8, 9, 10]) {
+      const sf = statusFill(row.getCell(ci).value);
+      if (sf) {
+        row.getCell(ci).fill = sf.fill;
+        if (sf.font) row.getCell(ci).font = sf.font;
+      }
+    }
+
+    // Days Until: highlight Complete green, TBD gray
+    if (daysVal === 'Complete') {
+      row.getCell(7).fill = ejFill(EJ_COLORS.completeBg);
+      row.getCell(7).font = { color: { argb: 'FF' + EJ_COLORS.completeFont } };
+    } else if (daysVal === 'TBD') {
+      row.getCell(7).fill = ejFill(EJ_COLORS.tbd);
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // WEEKLY AUDIT
+  // ════════════════════════════════════════════════════════════════
+  const wa = wb.addWorksheet('Weekly Audit');
+
+  wa.columns = [
+    { width: 10 },  // A: Site No
+    { width: 20 },  // B: Country
+    { width: 45 },  // C: Institution
+    { width: 28 },  // D: PI Name
+    { width: 14 },  // E: Baseline IRB Sub
+    { width: 14 },  // F: Previous IRB Sub
+    { width: 14 },  // G: Current IRB Sub
+    { width: 34 },  // H: IRB Sub Change
+    { width: 14 },  // I: Baseline IRB Appr
+    { width: 14 },  // J: Previous IRB Appr
+    { width: 14 },  // K: Current IRB Appr
+    { width: 34 },  // L: IRB Appr Change
+    { width: 14 },  // M: Baseline Contract
+    { width: 14 },  // N: Previous Contract
+    { width: 14 },  // O: Current Contract
+    { width: 34 },  // P: Contract Change
+    { width: 14 },  // Q: Baseline PAD
+    { width: 14 },  // R: Previous PAD
+    { width: 14 },  // S: Current PAD
+    { width: 34 },  // T: PAD Change
+  ];
+
+  // Metadata rows
+  wa.getRow(1).getCell(1).value = 'BNT327-05 Site Activation Monitoring Report - Change Log';
+  wa.getRow(1).getCell(1).font = { bold: true, size: 14, color: { argb: 'FF' + EJ_COLORS.headerFont } };
+  wa.getRow(1).getCell(1).fill = ejFill(EJ_COLORS.headerBg);
+  for (let c = 2; c <= 20; c++) wa.getRow(1).getCell(c).fill = ejFill(EJ_COLORS.headerBg);
+  wa.mergeCells(1, 1, 1, 20);
+
+  const metaRows = [2, 3, 4, 5, 6, 7, 8, 9];
+  const metaVals = {
+    2: `Last Updated: ${fmtDateMMDDYYYY(today)}`,
+    3: `Source: ${ssuSource}`,
+    4: null,
+    5: `Previous: ${prevSource}`,
+    6: `Current: ${ssuSource}`,
+    7: 'Change: Difference between Current and Previous Dates',
+    8: null,
+    9: 'Baseline: SSU dates reported on 24 Sep 2025',
+  };
+  for (const mr of metaRows) {
+    if (metaVals[mr]) wa.getRow(mr).getCell(1).value = metaVals[mr];
+    for (let c = 1; c <= 20; c++) wa.getRow(mr).getCell(c).fill = ejFill('F2CEEF');
+    wa.mergeCells(mr, 1, mr, 20);
+  }
+
+  // Group headers at row 11
+  const groups = [
+    { col: 5, span: 4, label: 'IRB Submission' },
+    { col: 9, span: 4, label: 'IRB Approval' },
+    { col: 13, span: 4, label: 'Contract' },
+    { col: 17, span: 4, label: 'Planned Activation Date' },
+  ];
+  for (const g of groups) {
+    const startCol = g.col;
+    const endCol = g.col + g.span - 1;
+    wa.mergeCells(11, startCol, 11, endCol);
+    const cell = wa.getRow(11).getCell(startCol);
+    cell.value = g.label;
+    cell.font = { bold: true, size: 10, color: { argb: 'FF' + EJ_COLORS.headerFont } };
+    cell.fill = ejFill(EJ_COLORS.headerBg);
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cell.border = ejBorder();
+    for (let c = startCol + 1; c <= endCol; c++) {
+      wa.getRow(11).getCell(c).fill = ejFill(EJ_COLORS.headerBg);
+      wa.getRow(11).getCell(c).border = ejBorder();
+    }
+  }
+  // Also fill identity cols A-D in row 11 with header color
+  for (let c = 1; c <= 4; c++) {
+    wa.getRow(11).getCell(c).fill = ejFill(EJ_COLORS.headerBg);
+    wa.getRow(11).getCell(c).border = ejBorder();
+  }
+
+  // Column headers at row 12
+  const auditHeaders = [
+    'Site No', 'Country', 'Institution', 'PI Name',
+    'Baseline IRB Sub', 'Previous IRB Sub', 'Current IRB Sub', 'IRB Sub Change',
+    'Baseline IRB Appr', 'Previous IRB Appr', 'Current IRB Appr', 'IRB Appr Change',
+    'Baseline Contract', 'Previous Contract', 'Current Contract', 'Contract Change',
+    'Baseline PAD', 'Previous PAD', 'Current PAD', 'PAD Change',
+  ];
+  const ahRow = wa.getRow(12);
+  auditHeaders.forEach((h, i) => {
+    const cell = ahRow.getCell(i + 1);
+    cell.value = h;
+    cell.font = { bold: true, size: 9, color: { argb: 'FF' + EJ_COLORS.headerFont } };
+    cell.fill = ejFill(EJ_COLORS.headerBg);
+    cell.alignment = { wrapText: true, vertical: 'middle' };
+    cell.border = ejBorder();
+  });
+  ahRow.height = 30;
+
+  // Border styles: medium for group separators, thin for rest
+  const thinSide = { style: 'thin', color: { argb: 'FFD0D0D0' } };
+  const medSide = { style: 'medium', color: { argb: 'FF000000' } };
+  const medRightCols = new Set([4, 8, 12, 16]);
+  const medLeftCols = new Set([5, 9, 13, 17]);
+  function auditBorder(colIdx) {
+    return {
+      top: thinSide, bottom: thinSide,
+      left: medLeftCols.has(colIdx) ? medSide : thinSide,
+      right: medRightCols.has(colIdx) ? medSide : thinSide,
+    };
+  }
+
+  // Apply group-separator borders to header rows 11 and 12
+  for (const headerR of [11, 12]) {
+    for (let c = 1; c <= 20; c++) {
+      wa.getRow(headerR).getCell(c).border = auditBorder(c);
+    }
+  }
+
+  // Auto-filter on row 12
+  wa.autoFilter = { from: { row: 12, column: 1 }, to: { row: 12, column: 20 } };
+
+  // Data rows
+  for (let i = 0; i < auditRows.length; i++) {
+    const r = auditRows[i];
+    const row = wa.getRow(i + 13);
+    const vals = [
+      r.site_no, r.country, r.institution, r.pi_name,
+      cellDate(r.bl_irb_sub), cellDate(r.prev_irb_sub), cellDate(r.curr_irb_sub), r.chg_irb_sub,
+      cellDate(r.bl_irb_appr), cellDate(r.prev_irb_appr), cellDate(r.curr_irb_appr), r.chg_irb_appr,
+      cellDate(r.bl_contract), cellDate(r.prev_contract), cellDate(r.curr_contract), r.chg_contract,
+      cellDate(r.bl_pad), cellDate(r.prev_pad), cellDate(r.curr_pad), r.chg_pad,
+    ];
+
+    vals.forEach((v, ci) => {
+      const cell = row.getCell(ci + 1);
+      cell.value = v;
+      cell.border = auditBorder(ci + 1);
+      cell.alignment = { vertical: 'middle' };
+    });
+
+    // Highlight change columns (H=8, L=12, P=16, T=20)
+    for (const ci of [8, 12, 16, 20]) {
+      const cf = changeFill(row.getCell(ci).value);
+      if (cf) {
+        row.getCell(ci).fill = cf.fill;
+        if (cf.font) row.getCell(ci).font = cf.font;
+      }
+    }
+
+    // "Site Removed" rows: gray out
+    if (r.country === 'Site Removed') {
+      for (let c = 1; c <= 20; c++) {
+        row.getCell(c).fill = ejFill(EJ_COLORS.tbd);
+      }
+    }
+  }
+
+  // Write to buffer
+  const buf = await wb.xlsx.writeBuffer();
+  return buf;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MAIN
+// ═══════════════════════════════════════════════════════════════════
+
+async function runGenerate() {
+  const btn = document.getElementById('mrb-btn-generate');
+  const btnDl = document.getElementById('mrb-btn-download');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Processing...';
+  btnDl.style.display = 'none';
+  $log.innerHTML = '';
+  $log.classList.add('visible');
+  $summary.classList.remove('visible');
+  outputBlob = null;
+
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Parse SSU
+    mrbLog('Reading SSU Report...', 'info');
+    const ssuBuf = await mrbReadFile(ssuFile);
+    const ssuWB = XLSX.read(ssuBuf, { type: 'array', cellDates: false });
+    const ssuSites = parseSSU(ssuWB);
+    const ssuCount = Object.keys(ssuSites).length;
+    mrbLog(`  ✓ ${ssuCount} sites loaded`, 'ok');
+
+    // Validate SSU has expected columns
+    const sampleSite = ssuSites[Object.keys(ssuSites)[0]];
+    const requiredCols = ['Site No', 'Country', 'PI Name', 'Institution', 'Contract Planned',
+      'Site IRB/IEC Submission (Planned)', 'Site IRB/IEC Approval (Planned)',
+      'Planned Site Activation Date'];
+    const missingCols = requiredCols.filter(c => !(c in sampleSite));
+    if (missingCols.length) {
+      mrbLog(`  ⚠ Missing SSU columns: ${missingCols.join(', ')}`, 'warn');
+    }
+
+    // Parse Previous Report
+    mrbLog('Reading Previous Week\'s Report...', 'info');
+    const prevBuf = await mrbReadFile(prevFile);
+    const prevWB = XLSX.read(prevBuf, { type: 'array', cellDates: false });
+    const prevSites = parsePrevReport(prevWB);
+    const prevCount = Object.keys(prevSites).length;
+    mrbLog(`  ✓ ${prevCount} sites loaded`, 'ok');
+
+    // Derive SSU source name from filename
+    let ssuSource = ssuFile.name.replace(/\.xlsx?$/i, '').replace(/_/g, ' ');
+    // Try to extract a cleaner name
+    const m = ssuFile.name.match(/SSU.Report.Horizon.(\d{1,2}\w{3}\d{4})/i);
+    if (m) ssuSource = `BNT327-05_SSU Report_Horizon_${m[1]}`;
+
+    // Derive prev source from previous report's Source line
+    let prevSource = 'Previous Week Report';
+    const prevAuditSheet = prevWB.Sheets['Weekly Audit'];
+    if (prevAuditSheet) {
+      // Row 3 (0-indexed row 2) has Source
+      const sourceCell = prevAuditSheet['A3'];
+      if (sourceCell && sourceCell.v) {
+        const sv = String(sourceCell.v).replace(/^Source:\s*/, '').trim();
+        if (sv) prevSource = sv;
+      }
+    }
+
+    // Build Weekly Report
+    mrbLog('Building Weekly Report...', 'info');
+    const reportRows = buildWeeklyReport(ssuSites, today);
+    mrbLog(`  ✓ ${reportRows.length} rows`, 'ok');
+
+    // Build Weekly Audit
+    mrbLog('Building Weekly Audit...', 'info');
+    const auditRows = buildWeeklyAudit(ssuSites, prevSites, reportRows);
+    mrbLog(`  ✓ ${auditRows.length} rows`, 'ok');
+
+    // Write output
+    mrbLog('Writing Excel output...', 'info');
+    const outBuf = await writeOutput(reportRows, auditRows, ssuSource, prevSource, today);
+    outputBlob = new Blob([outBuf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const dateStr = `${String(today.getDate()).padStart(2,'0')}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getFullYear()).slice(2)}`;
+    outputName = `${dateStr}_BNT327-05_Site_Activation_Monitoring_Report.xlsx`;
+    mrbLog(`  ✓ ${outputName}`, 'ok');
+
+    // Summary stats
+    mrbLog('\n── Summary ──', 'info');
+    const statusCounts = { irb_sub: {}, irb_appr: {}, contract: {} };
+    for (const r of reportRows) {
+      statusCounts.irb_sub[r.irb_sub_status] = (statusCounts.irb_sub[r.irb_sub_status] || 0) + 1;
+      statusCounts.irb_appr[r.irb_appr_status] = (statusCounts.irb_appr[r.irb_appr_status] || 0) + 1;
+      statusCounts.contract[r.contract_status] = (statusCounts.contract[r.contract_status] || 0) + 1;
+    }
+    for (const [key, counts] of Object.entries(statusCounts)) {
+      const parts = Object.entries(counts).map(([k,v]) => `${k}: ${v}`).join(', ');
+      mrbLog(`  ${key}: ${parts}`);
+    }
+
+    const changeCounts = { irb_sub: {}, irb_appr: {}, contract: {}, pad: {} };
+    for (const r of auditRows) {
+      for (const key of ['irb_sub', 'irb_appr', 'contract', 'pad']) {
+        const v = r[`chg_${key}`];
+        const bucket = v.includes(':') ? v.split(':')[0] : v;
+        changeCounts[key][bucket] = (changeCounts[key][bucket] || 0) + 1;
+      }
+    }
+    for (const [key, counts] of Object.entries(changeCounts)) {
+      const parts = Object.entries(counts).map(([k,v]) => `${k}: ${v}`).join(', ');
+      mrbLog(`  audit ${key}: ${parts}`);
+    }
+
+    mrbLog('\n✅ Done! Click Download to save.', 'ok');
+
+    // Show summary
+    const grid = document.getElementById('mrb-summary-grid');
+    grid.innerHTML = '';
+    const stats = [
+      { label: 'Report Sites', value: reportRows.length, sub: 'Weekly Report rows' },
+      { label: 'Audit Sites', value: auditRows.length, sub: 'Incl. baseline + current' },
+      { label: 'Action Zone', value: (statusCounts.irb_sub['Action Zone']||0) + (statusCounts.irb_appr['Action Zone']||0) + (statusCounts.contract['Action Zone']||0), sub: 'Across all milestones' },
+      { label: 'Watch Zone', value: (statusCounts.irb_sub['Watch Zone']||0) + (statusCounts.irb_appr['Watch Zone']||0) + (statusCounts.contract['Watch Zone']||0), sub: 'Within 14 days' },
+    ];
+    for (const s of stats) {
+      const div = document.createElement('div');
+      div.className = 'stat';
+      div.innerHTML = `<div class="stat-label">${s.label}</div><div class="stat-value">${s.value}</div><div class="stat-sub">${s.sub}</div>`;
+      grid.appendChild(div);
+    }
+    $summary.classList.add('visible');
+
+    btnDl.style.display = '';
+  } catch (err) {
+    mrbLog(`\n❌ Error: ${err.message}`, 'err');
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Generate Monitoring Report';
+  }
+}
+
+</script>
+</body>
+</html>
